@@ -1,8 +1,6 @@
 
 # C++ to JavaScript Bridge [webbridge]
 
-[![Build](https://github.com/fsbondtec/webbridge_hackathon/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/fsbondtec/webbridge_hackathon/actions/workflows/build.yml)
-
 This repository is a demonstration project created during the fsbondtec [Christmas Hackathon 2025](https://www.fsbondtec.at/).
 
 C++ objects are seamlessly integrated into modern web applications as an alternative to **Qt**. The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromium) and a **Python code generator** that uses **tree-sitter** to analyze C++ classes and automatically generate JavaScript bindings and TypeScript type definitions. Code generation is required because C++26 reflection is not yet available.
