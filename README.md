@@ -208,6 +208,14 @@ int main() {
 }
 ```
 
+## Known Limitations
+
+The current implementation has the following limitations that are not yet supported:
+
+- **Multiple Constructors**: Classes with overloaded constructors are not supported. Only a single parameterless constructor is currently handled.
+- **Constructors with Parameters**: The code generator does not yet support constructors that take arguments. All objects must be instantiated using a default constructor.
+- **Enum Resolution in TypeScript**: C++ enums are not automatically converted to TypeScript enum types. They currently require manual type definitions in the frontend.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
