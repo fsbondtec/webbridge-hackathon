@@ -1,6 +1,8 @@
 build/
 bin/
 CMakeUserPresets.json
+venv/
+.venv/
 
 # Auto-generated TypeScript bindings
 frontend/src/*.types.d.ts
