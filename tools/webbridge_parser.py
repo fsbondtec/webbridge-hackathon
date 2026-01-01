@@ -509,7 +509,7 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
         max_len = max(len(c.name) for c in cls.constants)
         for const in cls.constants:
             static_prefix = 'static ' if const.is_static else ''
-            lines.append(f"  • {const.name.ljust(max_len)} : {static_prefix}const {const.type_name}")
+            lines.append(f"  - {const.name.ljust(max_len)} : {static_prefix}{const.type_name}")
     else:
         lines.append("  (keine Konstanten gefunden)")
 
