@@ -36,6 +36,14 @@ class EventInfo:
 
 
 @dataclass
+class ConstInfo:
+    """Information über eine Konstante"""
+    name: str
+    type_name: str
+    is_static: bool
+
+
+@dataclass
 class EnumInfo:
     """Information über ein Enum"""
     name: str
@@ -58,7 +66,9 @@ class ClassInfo:
     name: str
     properties: List[PropertyInfo] = field(default_factory=list)
     events: List[EventInfo] = field(default_factory=list)
+    constants: List[ConstInfo] = field(default_factory=list)
     enums: List[EnumInfo] = field(default_factory=list)
+    constructors: List[MethodInfo] = field(default_factory=list)
     sync_methods: List[MethodInfo] = field(default_factory=list)
     async_methods: List[MethodInfo] = field(default_factory=list)
 
@@ -201,14 +211,25 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
             if not func_declarator:
                 return
 
-            method_name_node = _find_child_by_type(func_declarator, 'field_identifier')
+            method_name_node = _find_child_by_type(func_declarator, 'field_identifier', 'identifier')
             params_node = _find_child_by_type(func_declarator, 'parameter_list')
 
             if method_name_node and params_node:
                 method_name = _get_node_text(source_code, method_name_node)
 
-                # Skip Konstruktoren, Destruktoren, Operatoren
-                if method_name in (class_info.name,) or method_name.startswith(('~', 'operator')):
+                # Skip Destruktoren und Operatoren
+                if method_name.startswith(('~', 'operator')):
+                    return
+
+                # Prüfe ob es ein Konstruktor ist
+                if method_name == class_info.name:
+                    method_info = MethodInfo(
+                        name=method_name,
+                        return_type='',  # Konstruktoren haben keinen Return-Type
+                        parameters=_parse_parameters(source_code, params_node),
+                        is_async=False
+                    )
+                    class_info.constructors.append(method_info)
                     return
 
                 # Return-Type ist erstes Kind vom node (vor function_declarator)
@@ -237,8 +258,19 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
             if method_name_node and params_node:
                 method_name = _get_node_text(source_code, method_name_node)
 
-                # Skip Konstruktoren, Destruktoren, Operatoren
-                if method_name in (class_info.name,) or method_name.startswith(('~', 'operator')):
+                # Skip Destruktoren und Operatoren
+                if method_name.startswith(('~', 'operator')):
+                    return
+
+                # Prüfe ob es ein Konstruktor ist
+                if method_name == class_info.name:
+                    method_info = MethodInfo(
+                        name=method_name,
+                        return_type='',  # Konstruktoren haben keinen Return-Type
+                        parameters=_parse_parameters(source_code, params_node),
+                        is_async=False
+                    )
+                    class_info.constructors.append(method_info)
                     return
 
                 # Finde Return-Type (erstes child das kein attribute/identifier/function_declarator ist)
@@ -259,32 +291,57 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
                 (class_info.async_methods if is_async else class_info.sync_methods).append(method_info)
             return
 
-        # Sonst ist es Property oder Event
+        # Sonst ist es Property, Event oder Konstante
         type_node = _find_child_by_type(node, 'template_type')
         declarator_node = _find_child_by_type(node, 'field_identifier')
 
-        if not (type_node and declarator_node):
-            return
+        # Wenn es ein template_type ist, prüfe auf Property/Event
+        if type_node and declarator_node:
+            template_name, template_args = _extract_template_info(source_code, type_node)
+            member_name = _get_node_text(source_code, declarator_node)
 
-        template_name, template_args = _extract_template_info(source_code, type_node)
-        member_name = _get_node_text(source_code, declarator_node)
+            # Property oder Event?
+            if template_name == 'Property':
+                prop_type = 'unknown'
+                if template_args:
+                    type_desc = _find_child_by_type(template_args, 'type_descriptor')
+                    if type_desc:
+                        prop_type = _normalize_type(source_code, type_desc)
+                class_info.properties.append(PropertyInfo(name=member_name, type_name=prop_type))
+                return
 
-        # Property oder Event?
-        if template_name == 'Property':
-            prop_type = 'unknown'
-            if template_args:
-                type_desc = _find_child_by_type(template_args, 'type_descriptor')
-                if type_desc:
-                    prop_type = _normalize_type(source_code, type_desc)
-            class_info.properties.append(PropertyInfo(name=member_name, type_name=prop_type))
-
-        elif template_name == 'Event':
-            arg_types = []
-            if template_args:
-                arg_types = [_normalize_type(source_code, child)
-                           for child in template_args.children
-                           if child.type == 'type_descriptor']
-            class_info.events.append(EventInfo(name=member_name, arg_types=arg_types))
+            elif template_name == 'Event':
+                arg_types = []
+                if template_args:
+                    arg_types = [_normalize_type(source_code, child)
+                               for child in template_args.children
+                               if child.type == 'type_descriptor']
+                class_info.events.append(EventInfo(name=member_name, arg_types=arg_types))
+                return
+        
+        # Wenn nicht Property/Event, prüfe ob es eine Konstante ist
+        if declarator_node:
+            has_const = False
+            is_static = False
+            actual_type_node = None
+            
+            for child in node.children:
+                text = _get_node_text(source_code, child)
+                if text == 'const':
+                    has_const = True
+                elif text == 'static':
+                    is_static = True
+                elif child.type in ('primitive_type', 'type_identifier', 'qualified_identifier'):
+                    actual_type_node = child
+            
+            if has_const and actual_type_node and declarator_node:
+                const_type = _normalize_type(source_code, actual_type_node)
+                const_name = _get_node_text(source_code, declarator_node)
+                class_info.constants.append(ConstInfo(
+                    name=const_name,
+                    type_name=const_type,
+                    is_static=is_static
+                ))
 
     # Traversierung mit Access-Tracking
     def walk(node: Node):
@@ -334,6 +391,16 @@ def _parse_class(source_code: bytes, node: Node, target_class_name: str) -> Opti
 
     class_info = ClassInfo(name=class_name)
     _extract_all_members(source_code, class_body, class_info)
+    
+    # Wenn keine Konstruktoren gefunden wurden, füge Default-Konstruktor hinzu
+    if not class_info.constructors:
+        class_info.constructors.append(MethodInfo(
+            name=class_name,
+            return_type='',
+            parameters=[],
+            is_async=False
+        ))
+    
     return class_info
 
 
@@ -426,7 +493,7 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
     else:
         lines.append("  (keine Properties gefunden)")
 
-        lines.extend(["", f"EVENTS ({len(cls.events)})", "-" * 40])
+    lines.extend(["", f"EVENTS ({len(cls.events)})", "-" * 40])
 
     if cls.events:
         max_len = max(len(e.name) for e in cls.events)
@@ -435,6 +502,16 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
                      for e in cls.events)
     else:
         lines.append("  (keine Events gefunden)")
+
+    lines.extend(["", f"CONSTANTS ({len(cls.constants)})", "-" * 40])
+
+    if cls.constants:
+        max_len = max(len(c.name) for c in cls.constants)
+        for const in cls.constants:
+            static_prefix = 'static ' if const.is_static else ''
+            lines.append(f"  • {const.name.ljust(max_len)} : {static_prefix}const {const.type_name}")
+    else:
+        lines.append("  (keine Konstanten gefunden)")
 
     lines.extend(["", f"ENUMS ({len(cls.enums)})", "-" * 40])
 
@@ -445,6 +522,17 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
             lines.append(f"  • {enum.name} [{enum_type}]: {{{values_str}}}")
     else:
         lines.append("  (keine Enums gefunden)")
+
+    lines.extend(["", f"CONSTRUCTORS ({len(cls.constructors)})", "-" * 40])
+
+    if cls.constructors:
+        for ctor in cls.constructors:
+            if ctor.parameters:
+                lines.append(f"  • {ctor.name}({', '.join(f'{t} {n}' for t, n in ctor.parameters)})")
+            else:
+                lines.append(f"  • {ctor.name}()")
+    else:
+        lines.append("  (keine Konstruktoren gefunden)")
 
     lines.extend(["", f"SYNCHRONE METHODEN ({len(cls.sync_methods)})", "-" * 40])
 
@@ -462,7 +550,7 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
     else:
         lines.append("  (keine asynchronen Methoden gefunden)")
 
-    total = len(cls.properties) + len(cls.events) + len(cls.enums) + len(cls.sync_methods) + len(cls.async_methods)
+    total = len(cls.properties) + len(cls.events) + len(cls.constants) + len(cls.enums) + len(cls.constructors) + len(cls.sync_methods) + len(cls.async_methods)
     lines.extend([
         "",
         "ZUSAMMENFASSUNG",
@@ -470,7 +558,9 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
         f"  Gesamtzahl Members: {total}",
         f"    - Properties:      {len(cls.properties)}",
         f"    - Events:          {len(cls.events)}",
+        f"    - Constants:       {len(cls.constants)}",
         f"    - Enums:           {len(cls.enums)}",
+        f"    - Constructors:    {len(cls.constructors)}",
         f"    - Sync Methoden:   {len(cls.sync_methods)}",
         f"    - Async Methoden:  {len(cls.async_methods)}",
         ""

@@ -60,7 +60,14 @@ public:
 	Property<Pod> pod{ Pod{0,0} };
 	Event<int, bool> aEvent;
 
+	// konstanten
+	const std::string version;
+	static inline const std::string appversion{"app version"};
+
 public:
+	explicit MyObject(const std::string& version_) : version(version_) {}
+	explicit MyObject() : version("unknown") {;}
+
 	[[async]] void foo(const std::string& val);
 
 	bool bar();
@@ -79,4 +86,7 @@ public:
 		Status statusValue,
 		const Pod& podValue
 	);
+
+private:
+
 };
