@@ -63,6 +63,7 @@ public:
 	// konstanten
 	const std::string version;
 	static inline const std::string appversion{"app version"};
+	static inline constexpr unsigned cppversion{23};
 
 public:
 	explicit MyObject(const std::string& version_) : version(version_) {}

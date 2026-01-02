@@ -24,7 +24,7 @@ import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from typescript_types import cpp_to_ts_type
-from webbridge_parser import ClassInfo, parse_header
+from parser import ClassInfo, parse_header
 
 
 # =============================================================================

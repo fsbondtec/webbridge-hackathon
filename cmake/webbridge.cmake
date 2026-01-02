@@ -88,7 +88,7 @@ function(webbridge_generate)
 		if(header_files)
 			execute_process(
 				COMMAND ${Python_EXECUTABLE}
-					${CMAKE_SOURCE_DIR}/tools/webbridge_discoverer.py
+				${CMAKE_SOURCE_DIR}/tools/discoverer.py
 					${header_files}
 				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 				OUTPUT_VARIABLE discoverer_output
@@ -97,7 +97,7 @@ function(webbridge_generate)
 			)
 
 			if(result AND NOT result EQUAL 0)
-				message(FATAL_ERROR "webbridge_discoverer.py failed with exit code ${result}")
+				message(FATAL_ERROR "discoverer.py failed with exit code ${result}")
 			endif()
 
 			# Parse output using helper function
@@ -113,7 +113,7 @@ function(webbridge_generate)
 
 		execute_process(
 			COMMAND ${Python_EXECUTABLE}
-				${CMAKE_SOURCE_DIR}/tools/webbridge_discoverer.py
+			${CMAKE_SOURCE_DIR}/tools/discoverer.py
 				${abs_files}
 			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 			OUTPUT_VARIABLE discoverer_output
@@ -122,7 +122,7 @@ function(webbridge_generate)
 		)
 
 		if(result AND NOT result EQUAL 0)
-			message(FATAL_ERROR "webbridge_discoverer.py failed with exit code ${result}")
+			message(FATAL_ERROR "discoverer.py failed with exit code ${result}")
 		endif()
 
 		# Parse output using helper function
@@ -170,7 +170,7 @@ function(webbridge_generate)
 			${python_out_arg} ${arg_OUTPUT_DIR}
 		DEPENDS
 			${CMAKE_SOURCE_DIR}/tools/generate.py
-				${CMAKE_SOURCE_DIR}/tools/webbridge_parser.py
+				${CMAKE_SOURCE_DIR}/tools/parser.py
 				${CMAKE_SOURCE_DIR}/tools/typescript_types.py
 				${template_file}
 				${file}
