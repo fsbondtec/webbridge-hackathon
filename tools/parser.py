@@ -327,11 +327,13 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
             
             for child in node.children:
                 text = _get_node_text(source_code, child)
-                if text == 'const':
+                if text == 'const' or text == 'constexpr':
+                    has_const = True
+                elif child.type == 'type_qualifier' and ('const' in text or 'constexpr' in text):
                     has_const = True
                 elif text == 'static':
                     is_static = True
-                elif child.type in ('primitive_type', 'type_identifier', 'qualified_identifier'):
+                elif child.type in ('primitive_type', 'type_identifier', 'qualified_identifier', 'sized_type_specifier'):
                     actual_type_node = child
             
             if has_const and actual_type_node and declarator_node:
