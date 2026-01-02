@@ -23,7 +23,7 @@ import sys
 import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
-from typescript_types import cpp_to_ts_type
+from tstypes import cpp_to_ts_type
 from parser import ClassInfo, parse_header
 
 
