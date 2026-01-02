@@ -5,7 +5,21 @@ webbridge Parser Module
 Tree-sitter based parser for extracting class information from C++ headers.
 Extracts properties, events, and methods from explicitly specified classes.
 
-Voraussetzungen:
+Note on Implementation:
+    Tree-sitter provides a powerful query API using S-expressions
+    (see https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html)
+    which would allow declarative pattern matching like:
+    
+        (field_declaration
+          (template_type name: (type_identifier) @template_name)
+          declarator: (field_identifier) @member_name)
+    
+    However, the Python bindings for tree-sitter queries were not working reliably
+    in our testing environment. Therefore, this module uses manual AST traversal
+    instead. While more verbose, this approach provides full control over the
+    parsing logic and handles edge cases more explicitly.
+
+Requirements:
     pip install tree-sitter tree-sitter-cpp
 """
 
@@ -23,21 +37,21 @@ from tree_sitter import Language, Parser, Node
 
 @dataclass
 class PropertyInfo:
-    """Information über eine Property<T>"""
+    """Information about a Property<T> member."""
     name: str
     type_name: str
 
 
 @dataclass
 class EventInfo:
-    """Information über ein Event<Args...>"""
+    """Information about an Event<Args...> member."""
     name: str
     arg_types: List[str]
 
 
 @dataclass
 class ConstInfo:
-    """Information über eine Konstante"""
+    """Information about a constant member."""
     name: str
     type_name: str
     is_static: bool
@@ -45,7 +59,7 @@ class ConstInfo:
 
 @dataclass
 class EnumInfo:
-    """Information über ein Enum"""
+    """Information about an enum definition."""
     name: str
     enum_values: List[str]
     is_enum_class: bool
@@ -53,7 +67,7 @@ class EnumInfo:
 
 @dataclass
 class MethodInfo:
-    """Information über eine Methode"""
+    """Information about a method."""
     name: str
     return_type: str
     parameters: List[Tuple[str, str]]
@@ -62,8 +76,9 @@ class MethodInfo:
 
 @dataclass
 class ClassInfo:
-    """Gesammelte Information über eine C++-Klasse"""
+    """Collected information about a C++ class."""
     name: str
+    namespace: List[str] = field(default_factory=list)
     properties: List[PropertyInfo] = field(default_factory=list)
     events: List[EventInfo] = field(default_factory=list)
     constants: List[ConstInfo] = field(default_factory=list)
@@ -78,12 +93,12 @@ class ClassInfo:
 # =============================================================================
 
 def _get_node_text(source_code: bytes, node: Node) -> str:
-    """Extrahiert den Text eines Nodes"""
+    """Extract the text content of an AST node."""
     return source_code[node.start_byte:node.end_byte].decode('utf-8')
 
 
 def _normalize_type(source_code: bytes, node: Node) -> str:
-    """Extrahiert Typ-Text normalisiert mit korrekten Trennzeichen"""
+    """Extract and normalize type text with correct spacing."""
     if node.type == 'comment' or not node:
         return ''
 
@@ -110,12 +125,12 @@ def _normalize_type(source_code: bytes, node: Node) -> str:
 
 
 def _find_child_by_type(node: Node, *types) -> Optional[Node]:
-    """Findet das erste Kind mit einem der angegebenen Typen"""
+    """Find the first child node matching any of the given types."""
     return next((child for child in node.children if child.type in types), None)
 
 
 def _extract_template_info(source_code: bytes, type_node: Node) -> Tuple[Optional[str], Optional[Node]]:
-    """Extrahiert Template-Name und Template-Argumente"""
+    """Extract template name and template argument list from a template type node."""
     template_name_node = _find_child_by_type(type_node, 'type_identifier')
     template_args = _find_child_by_type(type_node, 'template_argument_list')
 
@@ -124,7 +139,7 @@ def _extract_template_info(source_code: bytes, type_node: Node) -> Tuple[Optiona
 
 
 def _parse_parameters(source_code: bytes, param_list: Node) -> List[Tuple[str, str]]:
-    """Parst Parameter-Liste durch AST-Traversal"""
+    """Parse a parameter list node into a list of (type, name) tuples."""
     parameters = []
 
     for child in param_list.children:
@@ -155,22 +170,71 @@ def _parse_parameters(source_code: bytes, param_list: Node) -> List[Tuple[str, s
     return parameters
 
 
-def _extract_all_members(source_code: bytes, class_body: Node, class_info: ClassInfo):
-    """Extrahiert alle Members (Properties, Events, Methods) in einem Durchlauf"""
+def _parse_method(source_code: bytes, node: Node, func_declarator: Node, 
+                  class_name: str, is_inline: bool = False) -> Optional[MethodInfo]:
+    """Parse a method from either function_definition or field_declaration.
+    
+    Returns None if the node should be skipped (destructor, operator, etc.).
+    Returns a tuple (method_info, is_constructor) otherwise.
+    """
+    name_types = ('field_identifier', 'identifier') if is_inline else ('field_identifier',)
+    method_name_node = _find_child_by_type(func_declarator, *name_types)
+    params_node = _find_child_by_type(func_declarator, 'parameter_list')
+    
+    if not (method_name_node and params_node):
+        return None
+    
+    method_name = _get_node_text(source_code, method_name_node)
+    
+    # Skip destructors and operators
+    if method_name.startswith(('~', 'operator')):
+        return None
+    
+    is_constructor = (method_name == class_name)
+    
+    # Determine return type based on node type
+    if is_constructor:
+        return_type = ''
+    elif is_inline:
+        # For function_definition: return type is before function_declarator
+        skip_types = ('function_declarator', 'compound_statement', 'type_qualifier')
+        return_type_node = next((c for c in node.children if c.type not in skip_types), None)
+        return_type = _normalize_type(source_code, return_type_node) if return_type_node else 'void'
+    else:
+        # For field_declaration: skip attributes and declarators
+        skip_types = ('attribute_declaration', 'field_identifier', 'function_declarator', ';')
+        return_type_node = next((c for c in node.children if c.type not in skip_types), None)
+        return_type = _normalize_type(source_code, return_type_node) if return_type_node else 'void'
+    
+    # Check for async attribute (only in field_declaration, not inline)
+    is_async = False
+    if not is_inline:
+        is_async = any('async' in _get_node_text(source_code, child)
+                       for child in node.children if child.type == 'attribute_declaration')
+    
+    return MethodInfo(
+        name=method_name,
+        return_type=return_type,
+        parameters=_parse_parameters(source_code, params_node),
+        is_async=is_async
+    )
 
-    current_access = 'private'  # Default access in class ist private
+
+def _extract_all_members(source_code: bytes, class_body: Node, class_info: ClassInfo):
+    """Extract all members (properties, events, methods) in a single pass."""
+
+    current_access = 'private'  # Default access in class is private
 
     def process_field(node: Node, access: str):
         if node.type not in ('field_declaration', 'function_definition', 'enum_specifier'):
             return
 
-        # Ignoriere nicht-public Members
+        # Ignore non-public members
         if access != 'public':
             return
 
-        # Behandle enum_specifier
+        # Handle enum_specifier
         if node.type == 'enum_specifier':
-            # Prüfe ob es enum class ist
             is_enum_class = False
             enum_name = None
             enumerator_list = None
@@ -184,111 +248,48 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
                 elif child.type == 'enumerator_list':
                     enumerator_list = child
 
-            # Extrahiere enum values
+            # Extract enum values
             enum_values = []
             if enumerator_list:
                 for child in enumerator_list.children:
                     if child.type == 'enumerator':
-                        # Hole nur den Namen, nicht den Wert
                         identifier = _find_child_by_type(child, 'identifier')
                         if identifier:
                             enum_values.append(_get_node_text(source_code, identifier))
 
-            # Wenn kein Name, dann ist es anonym
-            if not enum_name:
-                enum_name = '<anonymous>'
-
             class_info.enums.append(EnumInfo(
-                name=enum_name,
+                name=enum_name or '<anonymous>',
                 enum_values=enum_values,
                 is_enum_class=is_enum_class
             ))
             return
 
-        # Für function_definition: andere Struktur
+        # Handle function_definition (inline method with body)
         if node.type == 'function_definition':
             func_declarator = _find_child_by_type(node, 'function_declarator')
             if not func_declarator:
                 return
-
-            method_name_node = _find_child_by_type(func_declarator, 'field_identifier', 'identifier')
-            params_node = _find_child_by_type(func_declarator, 'parameter_list')
-
-            if method_name_node and params_node:
-                method_name = _get_node_text(source_code, method_name_node)
-
-                # Skip Destruktoren und Operatoren
-                if method_name.startswith(('~', 'operator')):
-                    return
-
-                # Prüfe ob es ein Konstruktor ist
-                if method_name == class_info.name:
-                    method_info = MethodInfo(
-                        name=method_name,
-                        return_type='',  # Konstruktoren haben keinen Return-Type
-                        parameters=_parse_parameters(source_code, params_node),
-                        is_async=False
-                    )
-                    class_info.constructors.append(method_info)
-                    return
-
-                # Return-Type ist erstes Kind vom node (vor function_declarator)
-                return_type_node = next((child for child in node.children
-                                       if child.type not in ('function_declarator', 'compound_statement', 'type_qualifier')), None)
-
-                method_info = MethodInfo(
-                    name=method_name,
-                    return_type=_normalize_type(source_code, return_type_node) if return_type_node else 'void',
-                    parameters=_parse_parameters(source_code, params_node),
-                    is_async=False  # inline methods are never async
-                )
-
-                class_info.sync_methods.append(method_info)
+            
+            method = _parse_method(source_code, node, func_declarator, class_info.name, is_inline=True)
+            if method:
+                if method.name == class_info.name:
+                    class_info.constructors.append(method)
+                else:
+                    class_info.sync_methods.append(method)
             return
 
-        # Für field_declaration: wie bisher
-        # Prüfe zuerst ob es eine Methoden-Deklaration ist
+        # Handle field_declaration (could be method declaration, property, event, or constant)
         func_declarator = _find_child_by_type(node, 'function_declarator')
 
-        # Wenn function_declarator existiert, ist es eine Methode
         if func_declarator:
-            method_name_node = _find_child_by_type(func_declarator, 'field_identifier')
-            params_node = _find_child_by_type(func_declarator, 'parameter_list')
-
-            if method_name_node and params_node:
-                method_name = _get_node_text(source_code, method_name_node)
-
-                # Skip Destruktoren und Operatoren
-                if method_name.startswith(('~', 'operator')):
-                    return
-
-                # Prüfe ob es ein Konstruktor ist
-                if method_name == class_info.name:
-                    method_info = MethodInfo(
-                        name=method_name,
-                        return_type='',  # Konstruktoren haben keinen Return-Type
-                        parameters=_parse_parameters(source_code, params_node),
-                        is_async=False
-                    )
-                    class_info.constructors.append(method_info)
-                    return
-
-                # Finde Return-Type (erstes child das kein attribute/identifier/function_declarator ist)
-                return_type_node = next((child for child in node.children
-                                         if child.type not in ('attribute_declaration', 'field_identifier', 'function_declarator', ';')), None)
-
-                # Prüfe auf async
-                is_async = any('async' in _get_node_text(source_code, child)
-                               for child in node.children if child.type == 'attribute_declaration')
-
-                method_info = MethodInfo(
-                    name=method_name,
-                    return_type=_normalize_type(source_code, return_type_node) if return_type_node else 'void',
-                    parameters=_parse_parameters(source_code, params_node),
-                    is_async=is_async
-                )
-
-                (class_info.async_methods if is_async else class_info.sync_methods).append(method_info)
+            method = _parse_method(source_code, node, func_declarator, class_info.name, is_inline=False)
+            if method:
+                if method.name == class_info.name:
+                    class_info.constructors.append(method)
+                elif method.is_async:
+                    class_info.async_methods.append(method)
+                else:
+                    class_info.sync_methods.append(method)
             return
 
         # Sonst ist es Property, Event oder Konstante
@@ -345,19 +346,16 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
                     is_static=is_static
                 ))
 
-    # Traversierung mit Access-Tracking
+    # Traverse with access specifier tracking
     def walk(node: Node):
         nonlocal current_access
 
-        # Prüfe auf access_specifier
         if node.type == 'access_specifier':
             access_text = _get_node_text(source_code, node)
-            if 'public' in access_text:
-                current_access = 'public'
-            elif 'private' in access_text:
-                current_access = 'private'
-            elif 'protected' in access_text:
-                current_access = 'protected'
+            for access in ('public', 'private', 'protected'):
+                if access in access_text:
+                    current_access = access
+                    break
         else:
             process_field(node, current_access)
 
@@ -367,13 +365,14 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
     walk(class_body)
 
 
-def _parse_class(source_code: bytes, node: Node, target_class_name: str) -> Optional[ClassInfo]:
-    """Parst eine Klassen-Definition
+def _parse_class(source_code: bytes, node: Node, target_class_name: str, namespace: List[str] = None) -> Optional[ClassInfo]:
+    """Parse a class definition node.
 
     Args:
-        source_code: Der Quellcode als bytes
-        node: Der AST-Node der Klasse
-        target_class_name: Name der zu parsenden Klasse
+        source_code: The source code as bytes
+        node: The AST node of the class
+        target_class_name: Name of the class to parse
+        namespace: List of namespace names (for nested namespaces)
     """
     class_name = None
     class_body = None
@@ -391,10 +390,10 @@ def _parse_class(source_code: bytes, node: Node, target_class_name: str) -> Opti
     if class_name != target_class_name:
         return None
 
-    class_info = ClassInfo(name=class_name)
+    class_info = ClassInfo(name=class_name, namespace=namespace or [])
     _extract_all_members(source_code, class_body, class_info)
     
-    # Wenn keine Konstruktoren gefunden wurden, füge Default-Konstruktor hinzu
+    # Add implicit default constructor if none found
     if not class_info.constructors:
         class_info.constructors.append(MethodInfo(
             name=class_name,
@@ -406,24 +405,46 @@ def _parse_class(source_code: bytes, node: Node, target_class_name: str) -> Opti
     return class_info
 
 
-def _find_class(source_code: bytes, node: Node, target_class_name: str) -> Optional[ClassInfo]:
-    """Sucht eine spezifische Klasse im AST
+def _find_class(source_code: bytes, node: Node, target_class_name: str, namespace: List[str] = None) -> Optional[ClassInfo]:
+    """Search for a specific class in the AST.
 
     Args:
-        source_code: Der Quellcode als bytes
-        node: Der aktuelle AST-Node
-        target_class_name: Name der zu parsenden Klasse
+        source_code: The source code as bytes
+        node: The current AST node
+        target_class_name: Name of the class to find
+        namespace: Current namespace hierarchy
     
     Returns:
-        ClassInfo wenn die Klasse gefunden wurde, sonst None
+        ClassInfo if the class was found, None otherwise
     """
+    if namespace is None:
+        namespace = []
+    
     if node.type == 'class_specifier':
-        class_info = _parse_class(source_code, node, target_class_name)
+        class_info = _parse_class(source_code, node, target_class_name, namespace)
         if class_info:
             return class_info
+    
+    # Bei namespace_definition: extrahiere Namen und durchsuche Inhalt
+    if node.type == 'namespace_definition':
+        ns_name = None
+        ns_body = None
+        for child in node.children:
+            if child.type == 'namespace_identifier':
+                ns_name = _get_node_text(source_code, child)
+            elif child.type == 'declaration_list':
+                ns_body = child
+        
+        if ns_name and ns_body:
+            new_namespace = namespace + [ns_name]
+            for child in ns_body.children:
+                result = _find_class(source_code, child, target_class_name, new_namespace)
+                if result:
+                    return result
+            return None
 
     for child in node.children:
-        result = _find_class(source_code, child, target_class_name)
+        result = _find_class(source_code, child, target_class_name, namespace)
         if result:
             return result
     
@@ -435,14 +456,14 @@ def _find_class(source_code: bytes, node: Node, target_class_name: str) -> Optio
 # =============================================================================
 
 def parse_header(header_path: str, class_name: str) -> Optional[ClassInfo]:
-    """Parst eine C++ Header-Datei und extrahiert eine spezifische Klasse
+    """Parse a C++ header file and extract a specific class.
 
     Args:
-        header_path: Pfad zur Header-Datei
-        class_name: Name der zu parsenden Klasse
+        header_path: Path to the header file
+        class_name: Name of the class to parse
 
     Returns:
-        ClassInfo-Objekt wenn die Klasse gefunden wurde, sonst None
+        ClassInfo object if the class was found, None otherwise
     """
     with open(Path(header_path).resolve(), 'rb') as f:
         source_code = f.read()
@@ -457,7 +478,7 @@ def parse_header(header_path: str, class_name: str) -> Optional[ClassInfo]:
 # =============================================================================
 
 def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) -> str:
-    """Generiert einen detaillierten Report über eine geparste Klasse"""
+    """Generate a detailed report about a parsed class."""
     lines = [
         "=" * 80,
         "webbridge Parser - Detaillierter Report",
@@ -577,21 +598,21 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
 # =============================================================================
 
 def main():
-    """Main Entry Point für Command Line Usage"""
+    """Main entry point for command line usage."""
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='webbridge Parser - Analysiert C++ Header-Dateien für spezifische Klassen',
-        epilog='Beispiel: python webbridge_parser.py ../src/MyObject.h --class-name MyObject'
+        description='webbridge Parser - Analyze C++ header files for specific classes',
+        epilog='Example: python parser.py ../src/MyObject.h --class-name MyObject'
     )
-    parser.add_argument('header_file', help='Pfad zur C++ Header-Datei')
-    parser.add_argument('-c', '--class-name', required=True, help='Name der zu parsenden Klasse')
-    parser.add_argument('-o', '--output', help='Ausgabedatei für Report (Standard: stdout)')
+    parser.add_argument('header_file', help='Path to the C++ header file')
+    parser.add_argument('-c', '--class-name', required=True, help='Name of the class to parse')
+    parser.add_argument('-o', '--output', help='Output file for report (default: stdout)')
 
     args = parser.parse_args()
 
     if not Path(args.header_file).exists():
-        print(f"FEHLER: Header-Datei nicht gefunden: {args.header_file}", file=sys.stderr)
+        print(f"ERROR: Header file not found: {args.header_file}", file=sys.stderr)
         sys.exit(1)
 
     try:
@@ -600,14 +621,14 @@ def main():
 
         if args.output:
             Path(args.output).write_text(output, encoding='utf-8')
-            print(f"Report erfolgreich geschrieben: {args.output}")
+            print(f"Report written successfully: {args.output}")
         else:
             print(output)
 
         sys.exit(0 if class_info else 1)
 
     except Exception as e:
-        print(f"FEHLER beim Parsen: {e}", file=sys.stderr)
+        print(f"ERROR while parsing: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc()
         sys.exit(2)
