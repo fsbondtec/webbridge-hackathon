@@ -137,7 +137,7 @@ namespace a { namespace b { namespace c {
 class TestProperties:
     """Tests for property parsing."""
     
-    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True, ids=["simple_class"])
     def test_simple_properties(self, temp_header):
         result = parse_header(str(temp_header), "SimpleClass")
         assert result is not None
@@ -145,14 +145,14 @@ class TestProperties:
         assert {p.name for p in result.properties} == {"counter", "name"}
         assert next(p for p in result.properties if p.name == "counter").type_name == "int"
     
-    @pytest.mark.parametrize("temp_header", [TEMPLATE_TYPES], indirect=True)
+    @pytest.mark.parametrize("temp_header", [TEMPLATE_TYPES], indirect=True, ids=["template_types"])
     def test_complex_type_properties(self, temp_header):
         result = parse_header(str(temp_header), "TemplateTest")
         assert result is not None and len(result.properties) == 3
         vec_prop = next(p for p in result.properties if p.name == "vecProp")
         assert "vector" in vec_prop.type_name and "int" in vec_prop.type_name
     
-    @pytest.mark.parametrize("temp_header", [ACCESS_SPECIFIERS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [ACCESS_SPECIFIERS], indirect=True, ids=["access_specifiers"])
     def test_no_private_properties(self, temp_header):
         result = parse_header(str(temp_header), "AccessTest")
         assert result is not None and len(result.properties) == 2
@@ -167,14 +167,14 @@ class TestProperties:
 class TestEvents:
     """Tests for event parsing."""
     
-    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True, ids=["simple_class"])
     def test_events_with_args(self, temp_header):
         result = parse_header(str(temp_header), "SimpleClass")
         assert result is not None and len(result.events) == 2
         on_changed = next(e for e in result.events if e.name == "onChanged")
         assert on_changed.arg_types == ["int", "bool"] or len(on_changed.arg_types) == 2
     
-    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True, ids=["simple_class"])
     def test_event_without_args(self, temp_header):
         result = parse_header(str(temp_header), "SimpleClass")
         on_reset = next(e for e in result.events if e.name == "onReset")
@@ -188,19 +188,19 @@ class TestEvents:
 class TestMethods:
     """Tests for method parsing."""
     
-    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True, ids=["simple_class"])
     def test_sync_methods(self, temp_header):
         result = parse_header(str(temp_header), "SimpleClass")
         assert result is not None and len(result.sync_methods) == 2
         assert {m.name for m in result.sync_methods} == {"doSomething", "getValue"}
     
-    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True, ids=["complex_class"])
     def test_async_methods(self, temp_header):
         result = parse_header(str(temp_header), "MyObject")
         assert result is not None and len(result.async_methods) == 2
         assert {m.name for m in result.async_methods} == {"foo", "asyncMethod"}
     
-    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True, ids=["complex_class"])
     def test_method_parameters(self, temp_header):
         result = parse_header(str(temp_header), "MyObject")
         multi_param = next(m for m in result.sync_methods if m.name == "multiParamTest")
@@ -208,7 +208,7 @@ class TestMethods:
         param_types = [t for t, _ in multi_param.parameters]
         assert "int" in param_types[0] and "bool" in param_types[1]
     
-    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True, ids=["complex_class"])
     def test_method_return_types(self, temp_header):
         result = parse_header(str(temp_header), "MyObject")
         bar = next(m for m in result.sync_methods if m.name == "bar")
@@ -216,13 +216,13 @@ class TestMethods:
         multi = next(m for m in result.sync_methods if m.name == "multiParamTest")
         assert "string" in multi.return_type
     
-    @pytest.mark.parametrize("temp_header", [INLINE_METHODS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [INLINE_METHODS], indirect=True, ids=["inline_methods"])
     def test_inline_methods(self, temp_header):
         result = parse_header(str(temp_header), "InlineClass")
         assert result is not None and len(result.sync_methods) == 3
         assert {m.name for m in result.sync_methods} == {"getValue", "setValue", "isEmpty"}
     
-    @pytest.mark.parametrize("temp_header", [ACCESS_SPECIFIERS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [ACCESS_SPECIFIERS], indirect=True, ids=["access_specifiers"])
     def test_no_private_methods(self, temp_header):
         result = parse_header(str(temp_header), "AccessTest")
         method_names = {m.name for m in result.sync_methods}
@@ -237,14 +237,14 @@ class TestMethods:
 class TestConstructors:
     """Tests for constructor parsing."""
     
-    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True, ids=["complex_class"])
     def test_explicit_constructors(self, temp_header):
         result = parse_header(str(temp_header), "MyObject")
         assert result is not None and len(result.constructors) >= 1
         default_ctor = next((c for c in result.constructors if not c.parameters), None)
         assert default_ctor is not None and default_ctor.name == "MyObject"
     
-    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True, ids=["simple_class"])
     def test_default_constructor_added(self, temp_header):
         result = parse_header(str(temp_header), "SimpleClass")
         assert result is not None and len(result.constructors) == 1
@@ -259,20 +259,20 @@ class TestConstructors:
 class TestConstants:
     """Tests for constant parsing."""
     
-    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True, ids=["complex_class"])
     def test_const_members(self, temp_header):
         result = parse_header(str(temp_header), "MyObject")
         assert result is not None and len(result.constants) >= 2
         assert {"version", "appversion"} <= {c.name for c in result.constants}
     
-    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True, ids=["complex_class"])
     def test_static_const_detection(self, temp_header):
         result = parse_header(str(temp_header), "MyObject")
         appversion = next(c for c in result.constants if c.name == "appversion")
         version = next(c for c in result.constants if c.name == "version")
         assert appversion.is_static and not version.is_static
     
-    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True, ids=["complex_class"])
     def test_inline_static_constexpr(self, temp_header):
         result = parse_header(str(temp_header), "MyObject")
         const_names = {c.name for c in result.constants}
@@ -288,7 +288,7 @@ class TestConstants:
 class TestEnums:
     """Tests for enum parsing."""
     
-    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [COMPLEX_CLASS], indirect=True, ids=["complex_class"])
     def test_inner_enum_class(self, temp_header):
         result = parse_header(str(temp_header), "MyObject")
         assert result is not None and len(result.enums) == 1
@@ -304,12 +304,12 @@ class TestEnums:
 class TestNamespaces:
     """Tests for namespace parsing."""
     
-    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True, ids=["simple_class"])
     def test_class_without_namespace(self, temp_header):
         result = parse_header(str(temp_header), "SimpleClass")
         assert result is not None and result.namespace == []
 
-    @pytest.mark.parametrize("temp_header", [NESTED_NAMESPACE], indirect=True)
+    @pytest.mark.parametrize("temp_header", [NESTED_NAMESPACE], indirect=True, ids=["nested_namespace"])
     def test_class_in_deeply_nested_namespace(self, temp_header):
         result = parse_header(str(temp_header), "DeepClass")
         assert result is not None
@@ -323,7 +323,7 @@ class TestNamespaces:
 class TestEdgeCases:
     """Tests for edge cases."""
     
-    @pytest.mark.parametrize("temp_header", [EMPTY_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [EMPTY_CLASS], indirect=True, ids=["empty_class"])
     def test_empty_class(self, temp_header):
         result = parse_header(str(temp_header), "EmptyClass")
         assert result is not None and result.name == "EmptyClass"
@@ -331,7 +331,7 @@ class TestEdgeCases:
         assert len(result.sync_methods) == 0 and len(result.async_methods) == 0
         assert len(result.constructors) == 1  # Default-Konstruktor
     
-    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True)
+    @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True, ids=["simple_class"])
     def test_class_not_found(self, temp_header):
         assert parse_header(str(temp_header), "NonExistentClass") is None
     
