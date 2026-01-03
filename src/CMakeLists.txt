@@ -37,6 +37,7 @@ set(webbridge_hackathon_WebBridge_SOURCES
 	webbridge/Impl/ObjectRegistry.h
 	webbridge/Impl/PropertyImpl.h
 	webbridge/Impl/TypeRegistration.h
+	webbridge/Impl/TypeRegistration.cpp
 
 	webbridge/Error.h
 	webbridge/Object.h
