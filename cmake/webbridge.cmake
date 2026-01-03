@@ -132,7 +132,7 @@ function(webbridge_generate)
 	# Check if we have any files to process
 	if(NOT all_files)
 		if(arg_AUTO)
-			message(WARNING "webbridge_generate: No files with webbridge::Object classes found in target ${arg_TARGET}")
+			message(WARNING "webbridge_generate: No files with webbridge::object classes found in target ${arg_TARGET}")
 		else()
 			message(WARNING "webbridge_generate: No files to process")
 		endif()

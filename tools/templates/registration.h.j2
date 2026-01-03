@@ -9,9 +9,9 @@
 
 #include <nlohmann/json.hpp>
 
-#include "webbridge/Impl/ObjectRegistry.h"
-#include "webbridge/Impl/TypeRegistration.h"
-#include "webbridge/Impl/BindingHelpers.h"
+#include "webbridge/impl/object_registry.h"
+#include "webbridge/impl/type_registration.h"
+#include "webbridge/impl/binding_helpers.h"
 #include "{{ header_path }}"
 
 namespace webbridge {
@@ -20,68 +20,68 @@ namespace webbridge {
 // Static Validations
 // =============================================================================
 
-static_assert(Impl::IsWebBridgeObject<{{ cls.name }}>,
-              "{{ cls.name }} must derive from webbridge::Object");
+static_assert(impl::is_webbridge_object<{{ cls.name }}>,
+              "{{ cls.name }} must derive from webbridge::object");
 
 {% for prop in cls.properties -%}
-static_assert(std::is_same_v<decltype({{ cls.name }}::{{ prop.name }}), Object::Property<{{ prop.type_name }}>>);
+static_assert(std::is_same_v<decltype({{ cls.name }}::{{ prop.name }}), object::property<{{ prop.type_name }}>>);
 {% endfor -%}
 {% for evt in cls.events -%}
-static_assert(std::is_same_v<decltype({{ cls.name }}::{{ evt.name }}), Object::Event<{{ evt.arg_types | join(', ') }}>>);
+static_assert(std::is_same_v<decltype({{ cls.name }}::{{ evt.name }}), object::event<{{ evt.arg_types | join(', ') }}>>);
 {% endfor %}
 
 // =============================================================================
 // Type-specific Setup
 // =============================================================================
 
-namespace Impl {
+namespace impl {
 
-inline void setupSubscriptions(
-    webview::webview& wRef,
-    const std::string& objectId,
+inline void setup_subscriptions(
+    webview::webview& w_ref,
+    const std::string& object_id,
     std::shared_ptr<{{ cls.name }}> obj)
 {
     // Properties
 {% for prop in cls.properties %}
-    subscribeProperty<{{ cls.name }}>(wRef, objectId, "{{ prop.name }}", obj->{{ prop.name }});
+    subscribe_property<{{ cls.name }}>(w_ref, object_id, "{{ prop.name }}", obj->{{ prop.name }});
 {% endfor %}
     // Events
 {% for evt in cls.events %}
-    subscribeEvent<{{ cls.name }}>(wRef, objectId, "{{ evt.name }}", obj->{{ evt.name }});
+    subscribe_event<{{ cls.name }}>(w_ref, object_id, "{{ evt.name }}", obj->{{ evt.name }});
 {% endfor -%}
 }
 
-inline void bindAll(webview::webview& wRef, ObjectRegistry& registry)
+inline void bind_all(webview::webview& w_ref, object_registry& registry)
 {
     // Property Getters
 {% for prop in cls.properties %}
-    bindPropertyGetter<{{ cls.name }}>(wRef, registry, "{{ cls.name }}", "{{ prop.name }}", &{{ cls.name }}::{{ prop.name }});
+    bind_property_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ prop.name }}", &{{ cls.name }}::{{ prop.name }});
 {% endfor %}
     // Sync Methods
 {% for method in cls.sync_methods %}
-    bindSyncMethod<{{ cls.name }}>(wRef, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
+    bind_sync_method<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
 {% endfor %}
     // Async Methods
 {% for method in cls.async_methods %}
-    bindAsyncMethod<{{ cls.name }}>(wRef, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
+    bind_async_method<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
 {% endfor -%}
 }
 
-} // namespace Impl
+} // namespace impl
 
 // =============================================================================
 // Template Specializations
 // =============================================================================
 
 template<>
-inline void registerType<{{ cls.name }}>(webview::webview* w) {
-    webview::webview& wRef = *w;
-    using namespace Impl;
-    auto& registry = ObjectRegistry::instance();
+inline void register_type<{{ cls.name }}>(webview::webview* w) {
+    webview::webview& w_ref = *w;
+    using namespace impl;
+    auto& registry = object_registry::instance();
 
     // JS initialization
-    wRef.init(generateJsGlobalRegistry());
-    wRef.init(generateJsClassWrapper(
+    w_ref.init(generate_js_global_registry());
+    w_ref.init(generate_js_class_wrapper(
         "{{ cls.name }}",
         {{ cls.sync_methods | json_names }},
         {{ cls.async_methods | json_names }},
@@ -90,37 +90,37 @@ inline void registerType<{{ cls.name }}>(webview::webview* w) {
     ));
 
     // Object creation
-    wRef.bind("__create_{{ cls.name }}", [&registry, &wRef](const std::string& req) -> std::string {
+    w_ref.bind("__create_{{ cls.name }}", [&registry, &w_ref](const std::string& req) -> std::string {
         auto obj = std::make_shared<{{ cls.name }}>();
-        auto objectId = registry.registerObject(obj, "{{ cls.name }}");
-        Impl::setupSubscriptions(wRef, objectId, obj);
-        return nlohmann::json(objectId).dump();
+        auto object_id = registry.register_object(obj, "{{ cls.name }}");
+        impl::setup_subscriptions(w_ref, object_id, obj);
+        return nlohmann::json(object_id).dump();
     });
 
     // Object destruction
-    wRef.bind("__webbridge_destroy", [&registry](const std::string& req) -> std::string {
+    w_ref.bind("__webbridge_destroy", [&registry](const std::string& req) -> std::string {
         auto args = nlohmann::json::parse(req);
-        registry.remove(extractObjectId(args));
+        registry.remove(extract_object_id(args));
         return "null";
     });
 
     // All bindings
-    Impl::bindAll(wRef, registry);
+    impl::bind_all(w_ref, registry);
 }
 
 template<>
-inline void publishObject<{{ cls.name }}>(webview::webview* w, std::string_view name, std::shared_ptr<{{ cls.name }}> obj) {
-    webview::webview& wRef = *w;
-    using namespace Impl;
-    auto& registry = ObjectRegistry::instance();
-    auto objectId = registry.registerObject(obj, "{{ cls.name }}");
+inline void publish_object<{{ cls.name }}>(webview::webview* w, std::string_view name, std::shared_ptr<{{ cls.name }}> obj) {
+    webview::webview& w_ref = *w;
+    using namespace impl;
+    auto& registry = object_registry::instance();
+    auto object_id = registry.register_object(obj, "{{ cls.name }}");
 
-    Impl::setupSubscriptions(wRef, objectId, obj);
+    impl::setup_subscriptions(w_ref, object_id, obj);
 
-    wRef.init(generateJsPublishedObject(
+    w_ref.init(generate_js_published_object(
         "{{ cls.name }}",
         std::string(name),
-        objectId,
+        object_id,
         {{ cls.sync_methods | json_names }},
         {{ cls.async_methods | json_names }},
         {{ cls.properties | json_names }},

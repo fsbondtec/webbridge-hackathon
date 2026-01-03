@@ -19,8 +19,8 @@ from parser import parse_header
 
 PROPERTY_EVENT_TEMPLATE = """
 #pragma once
-template<typename T> class Property {};
-template<typename... Args> class Event {};
+template<typename T> class property {};
+template<typename... Args> class event {};
 """
 
 @pytest.fixture
@@ -36,29 +36,29 @@ def temp_header(request):
 SIMPLE_CLASS = PROPERTY_EVENT_TEMPLATE + """
 class SimpleClass {
 public:
-    Property<int> counter;
-    Property<std::string> name;
-    Event<int, bool> onChanged;
-    Event<> onReset;
+    property<int> counter;
+    property<std::string> name;
+    event<int, bool> onChanged;
+    event<> onReset;
     void doSomething();
     int getValue();
 };
 """
 
 COMPLEX_CLASS = PROPERTY_EVENT_TEMPLATE + """
-namespace webbridge { class Object {}; }
+namespace webbridge { class object {}; }
 enum class Status { Idle, Running, Completed, Error };
 
-class MyObject : public webbridge::Object {
+class MyObject : public webbridge::object {
 public:
-    Property<bool> aBool;
-    Property<std::string> strProp;
-    Property<int> counter;
-    Property<std::vector<int>> numbers;
-    Property<Status> status;
+    property<bool> aBool;
+    property<std::string> strProp;
+    property<int> counter;
+    property<std::vector<int>> numbers;
+    property<Status> status;
 
-    Event<int, bool> aEvent;
-    Event<> simpleEvent;
+    event<int, bool> aEvent;
+    event<> simpleEvent;
 
     const std::string version;
     static inline const std::string appversion;
@@ -87,26 +87,26 @@ private:
 TEMPLATE_TYPES = PROPERTY_EVENT_TEMPLATE + """
 class TemplateTest {
 public:
-    Property<std::vector<int>> vecProp;
-    Property<std::map<std::string, int>> mapProp;
-    Property<std::optional<double>> optProp;
-    Event<std::vector<std::string>, int> complexEvent;
+    property<std::vector<int>> vecProp;
+    property<std::map<std::string, int>> mapProp;
+    property<std::optional<double>> optProp;
+    event<std::vector<std::string>, int> complexEvent;
 };
 """
 
 ACCESS_SPECIFIERS = PROPERTY_EVENT_TEMPLATE + """
 class AccessTest {
 public:
-    Property<int> publicProp;
+    property<int> publicProp;
     void publicMethod();
 protected:
-    Property<int> protectedProp;
+    property<int> protectedProp;
     void protectedMethod();
 private:
-    Property<int> privateProp;
+    property<int> privateProp;
     void privateMethod();
 public:
-    Property<int> anotherPublicProp;
+    property<int> anotherPublicProp;
 };
 """
 
@@ -115,7 +115,7 @@ EMPTY_CLASS = "#pragma once\nclass EmptyClass { public: };"
 INLINE_METHODS = PROPERTY_EVENT_TEMPLATE + """
 class InlineClass {
 public:
-    Property<int> value;
+    property<int> value;
     int getValue() { return 42; }
     void setValue(int v) { /* ... */ }
     bool isEmpty() const { return false; }

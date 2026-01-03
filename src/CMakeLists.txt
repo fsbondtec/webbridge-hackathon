@@ -25,19 +25,19 @@ set(webbridge_hackathon_SOURCES
 	main.cpp
 	MyObject.cpp
 	ResourceServer.h
-	webbridge/Impl/ErrorHandler.cpp
+	webbridge/impl/error_handler.cpp
 )
 
 set(webbridge_hackathon_WebBridge_SOURCES
-	webbridge/Impl/BindingHelpers.h
-	webbridge/Impl/Concepts.h
-	webbridge/Impl/ErrorHandler.h
-	webbridge/Impl/ErrorHandler.cpp
-	webbridge/Impl/EventImpl.h
-	webbridge/Impl/ObjectRegistry.h
-	webbridge/Impl/PropertyImpl.h
-	webbridge/Impl/TypeRegistration.h
-	webbridge/Impl/TypeRegistration.cpp
+	webbridge/impl/binding_helpers.h
+	webbridge/impl/concepts.h
+	webbridge/impl/error_handler.h
+	webbridge/impl/error_handler.cpp
+	webbridge/impl/event_impl.h
+	webbridge/impl/object_registry.h
+	webbridge/impl/property_impl.h
+	webbridge/impl/type_registration.h
+	webbridge/impl/type_registration.cpp
 
 	webbridge/Error.h
 	webbridge/Object.h

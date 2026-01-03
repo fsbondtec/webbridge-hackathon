@@ -4,16 +4,16 @@
 #include <shared_mutex>
 #include <functional>
 
-namespace webbridge::Impl {
+namespace webbridge::impl {
 
 template<typename T>
-class Property {
+class property {
 public:
-	using Callback = std::function<void(const T&)>;
+	using callback = std::function<void(const T&)>;
 
-	Property() = default;
+	property() = default;
 
-	explicit Property(T initial) : value_(std::move(initial)) {}
+	explicit property(T initial) : value_(std::move(initial)) {}
 
 	[[nodiscard]] T value() const {
 		std::shared_lock lock(mutex_);
@@ -24,15 +24,15 @@ public:
 		return value();
 	}
 
-	Property& operator=(T newValue) {
-		Callback cb;
+	property& operator=(T newValue) {
+		callback cb;
 		{
 			std::unique_lock lock(mutex_);
 			if (value_ == newValue) {
 				return *this;
 			}
 			value_ = std::move(newValue);
-			cb = onChanged_;
+			cb = on_changed_;
 		}
 		if (cb) {
 			cb(value_);
@@ -40,18 +40,18 @@ public:
 		return *this;
 	}
 
-	void setOnChanged(Callback callback) {
+	void set_on_changed(callback callback) {
 		std::unique_lock lock(mutex_);
-		onChanged_ = std::move(callback);
+		on_changed_ = std::move(callback);
 	}
 
-	Property(const Property&) = delete;
-	Property& operator=(const Property&) = delete;
+	property(const property&) = delete;
+	property& operator=(const property&) = delete;
 
 private:
 	mutable std::shared_mutex mutex_;
 	T value_{};
-	Callback onChanged_;
+	callback on_changed_;
 };
 
-} // namespace webbridge::Impl
+} // namespace webbridge::impl

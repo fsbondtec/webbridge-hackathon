@@ -8,20 +8,20 @@
 #include <format>
 #include <optional>
 
-namespace webbridge::Impl {
+namespace webbridge::impl {
 
-class ObjectRegistry {
+class object_registry {
 public:
-	using ObjectPtr = std::shared_ptr<void>;
+	using object_ptr = std::shared_ptr<void>;
 
-	static ObjectRegistry& instance() {
-		static ObjectRegistry registry;
+	static object_registry& instance() {
+		static object_registry registry;
 		return registry;
 	}
 
 	template<typename T>
-	std::string registerObject(std::shared_ptr<T> obj, std::string_view typeName) {
-		auto id = generateId(typeName);
+	std::string register_object(std::shared_ptr<T> obj, std::string_view type_name) {
+		auto id = generate_id(type_name);
 		std::unique_lock lock(m_mutex);
 		m_objects[id] = std::static_pointer_cast<void>(obj);
 		return id;
@@ -48,16 +48,16 @@ public:
 	}
 
 private:
-	ObjectRegistry() = default;
+	object_registry() = default;
 
-	std::string generateId(std::string_view typeName) {
+	std::string generate_id(std::string_view type_name) {
 		auto counter = m_counter.fetch_add(1, std::memory_order_relaxed);
-		return std::format("{}_{}", typeName, counter);
+		return std::format("{}_{}", type_name, counter);
 	}
 
 	mutable std::shared_mutex m_mutex;
-	std::unordered_map<std::string, ObjectPtr> m_objects;
+	std::unordered_map<std::string, object_ptr> m_objects;
 	std::atomic<uint64_t> m_counter{0};
 };
 
-} // namespace webbridge::Impl
+} // namespace webbridge::impl

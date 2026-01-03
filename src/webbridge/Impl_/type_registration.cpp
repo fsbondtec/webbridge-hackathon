@@ -1,9 +1,9 @@
-#include "TypeRegistration.h"
+#include "type_registration.h"
 #include <format>
 
-namespace webbridge::Impl {
+namespace webbridge::impl {
 
-std::string generateJsGlobalRegistry()
+std::string generate_js_global_registry()
 {
 	return R"(
 (function() {
@@ -40,10 +40,10 @@ std::string generateJsGlobalRegistry()
 )";
 }
 
-std::string generateJsClassWrapper(
-	std::string_view typeName,
-	const std::vector<std::string>& syncMethods,
-	const std::vector<std::string>& asyncMethods,
+std::string generate_js_class_wrapper(
+	std::string_view type_name,
+	const std::vector<std::string>& sync_methods,
+	const std::vector<std::string>& async_methods,
 	const std::vector<std::string>& properties,
 	const std::vector<std::string>& events)
 {
@@ -70,7 +70,7 @@ std::string generateJsClassWrapper(
 			window.__webbridge_objects[obj.#handle] = obj;
 
 			// Properties als Svelte-Stores initialisieren
-)", typeName);
+)", type_name);
 
 
 	for (const auto& prop : properties) {
@@ -86,7 +86,7 @@ std::string generateJsClassWrapper(
 					this._subscribers.forEach(fn => fn(value));
 				}}
 			}};
-)", prop, typeName);
+)", prop, type_name);
 	}
 
 	for (const auto& evt : events) {
@@ -133,20 +133,20 @@ std::string generateJsClassWrapper(
 		}
 )";
 
-	for (const auto& method : syncMethods) {
+	for (const auto& method : sync_methods) {
 		js += std::format(R"(
 		async {0}(...args) {{
 			return await __{1}_{0}(this.handle, ...args);
 		}}
-)", method, typeName);
+)", method, type_name);
 	}
 
-	for (const auto& method : asyncMethods) {
+	for (const auto& method : async_methods) {
 		js += std::format(R"(
 		async {0}(...args) {{
 			return await __{1}_{0}(this.handle, ...args);
 		}}
-)", method, typeName);
+)", method, type_name);
 	}
 
 	js += std::format(R"(
@@ -165,17 +165,17 @@ std::string generateJsClassWrapper(
 
 	window.{0} = {0};
 }})();
-)", typeName);
+)", type_name);
 
 	return js;
 }
 
-std::string generateJsPublishedObject(
-	std::string_view typeName,
-	std::string_view varName,
-	std::string_view objectId,
-	const std::vector<std::string>& syncMethods,
-	const std::vector<std::string>& asyncMethods,
+std::string generate_js_published_object(
+	std::string_view type_name,
+	std::string_view var_name,
+	std::string_view object_id,
+	const std::vector<std::string>& sync_methods,
+	const std::vector<std::string>& async_methods,
 	const std::vector<std::string>& properties,
 	const std::vector<std::string>& events)
 {
@@ -187,7 +187,7 @@ std::string generateJsPublishedObject(
 	obj.__handle = "{1}";
 	
 	window.__webbridge_objects[obj.__handle] = obj;
-)", typeName, objectId);
+)", type_name, object_id);
 
 
 	for (const auto& prop : properties) {
@@ -203,7 +203,7 @@ std::string generateJsPublishedObject(
 			this._subscribers.forEach(fn => fn(value));
 		}}
 	}};
-)", prop, typeName);
+)", prop, type_name);
 	}
 
 	// Events
@@ -228,29 +228,29 @@ std::string generateJsPublishedObject(
 )", evt);
 	}
 
-	for (const auto& method : syncMethods) {
+	for (const auto& method : sync_methods) {
 		js += std::format(R"(
 	obj.{0} = async function(...args) {{
 		return await __{1}_{0}(this.__handle, ...args);
 	}};
-)", method, typeName);
+)", method, type_name);
 	}
 
-	for (const auto& method : asyncMethods) {
+	for (const auto& method : async_methods) {
 		js += std::format(R"(
 	obj.{0} = async function(...args) {{
 		return await __{1}_{0}(this.__handle, ...args);
 	}};
-)", method, typeName);
+)", method, type_name);
 	}
 
 	js += std::format(R"(
 	window.{0} = obj;
 	console.log('[WebBridge] Published "{0}" with handle:', obj.__handle);
 }})();
-)", varName);
+)", var_name);
 
 	return js;
 }
 
-} // namespace webbridge::Impl
+} // namespace webbridge::impl

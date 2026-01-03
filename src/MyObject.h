@@ -49,16 +49,16 @@ inline void from_json(const nlohmann::json& j, Pod& p) {
 	j.at("b").get_to(p.b);
 }
 
-class MyObject : public webbridge::Object
+class MyObject : public webbridge::object
 {
 public:
-	Property<bool> aBool{ false };
-	Property<std::string> strProp;
-	Property<int> counter{ 0 };
-	Property<std::vector<int>> numbers;
-	Property<Status> status{ Status::Idle };
-	Property<Pod> pod{ Pod{0,0} };
-	Event<int, bool> aEvent;
+	property<bool> aBool{ false };
+	property<std::string> strProp;
+	property<int> counter{ 0 };
+	property<std::vector<int>> numbers;
+	property<Status> status{ Status::Idle };
+	property<Pod> pod{ Pod{0,0} };
+	event<int, bool> aEvent;
 
 	// konstanten
 	const std::string version;

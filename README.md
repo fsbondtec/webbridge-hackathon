@@ -75,7 +75,7 @@ build\Release\webbridge_hackathon.exe
 
 ## Concepts
 
-Every class to be exposed to the web must inherit from `WebBridge::Object`. The API is inspired by Qt and provides the following mechanisms for JavaScript integration:
+Every class to be exposed to the web must inherit from `webbridge::object`. The API is inspired by Qt and provides the following mechanisms for JavaScript integration:
 
 * **Methods** – Public C++ methods are automatically available in JavaScript
 * **Properties** – Exposed as Svelte-compatible stores (read-only)
@@ -83,7 +83,7 @@ Every class to be exposed to the web must inherit from `WebBridge::Object`. The 
 
 ### Methods
 
-All public methods of a `WebBridge::Object` class are automatically published to JavaScript.
+All public methods of a `webbridge::object` class are automatically published to JavaScript.
 
 A function marked with the `[[async]]` attribute is executed in a separate worker thread. This prevents blocking the main thread on the C++ side. On the JavaScript side, both synchronous and asynchronous methods always return a `Promise` and never block the main thread.
 
@@ -113,8 +113,8 @@ WebBridge implements robust error handling, distinguishing between JavaScript cl
 ```
 
 **Error codes:**
-- `4000-4999`: JavaScript errors (e.g., 4001 = TypeError during parameter deserialization)
-- `5000-5999`: C++ errors (e.g., 5000 = RuntimeError during runtime errors)
+- `4000-4999`: JavaScript errors (e.g., 4001 = JSON_PARSE_ERROR during parameter deserialization)
+- `5000-5999`: C++ errors (e.g., 5000 = RUNTIME_ERROR during runtime errors)
 
 Inspired by JSON-RPC 2.0, GraphQL, and HTTP status codes. Promises are automatically rejected on error, enabling clean exception handling with async/await syntax.
 
@@ -123,24 +123,24 @@ Inspired by JSON-RPC 2.0, GraphQL, and HTTP status codes. Promises are automatic
 The following example shows how to define a C++ class with methods, properties, and events for web integration with WebBridge.
 
 ```cpp
-#include "WebBridge/Object.h"
+#include "webbridge/Object.h"
 
-class MyObject : public WebBridge::Object
+class MyObject : public webbridge::object
 {
-    Property<bool> aBool = false;
-    Property<std::string> strProp;
-    Event<int, bool> aEvent;
+    property<bool> a_bool = false;
+    property<std::string> str_prop;
+    event<int, bool> a_event;
 
 public:
     [[async]] void foo(std::string_view val) {
         // long-running action
-        strProp = val;
-        aEvent.emit(42, false);
+        str_prop = val;
+        a_event.emit(42, false);
     }
 
     bool bar() const {
         // Parenthesis operator accesses value
-        return !aBool();
+        return !a_bool();
     }
 };
 ```
@@ -150,8 +150,8 @@ public:
 ```js
 const myObj = await MyObject.create();
 // ...
-myObj.aBool.subscribe(value => {
-    console.log('aBool updated:', value);
+myObj.a_bool.subscribe(value => {
+    console.log('a_bool updated:', value);
 });
 ```
 
@@ -178,12 +178,12 @@ myObj.foo('new value').then(() => {
 const myObj = await MyObject.create();
 
 // Register event listener (similar to Node.js EventEmitter)
-myObj.aEvent.on((intValue, boolValue) => {
+myObj.a_event.on((intValue, boolValue) => {
     console.log('Event received:', intValue, boolValue);
 });
 
 // Alternatively, one-time event
-myObj.aEvent.once((intValue, boolValue) => {
+myObj.a_event.once((intValue, boolValue) => {
     console.log('One-time event:', intValue, boolValue);
 });
 ```
@@ -198,11 +198,11 @@ To make C++ classes available in JavaScript, they must be explicitly registered.
 
 int main() {
     // Register the class for JavaScript
-    webbridge::registerType<MyObject>();
+    webbridge::register_type<MyObject>();
 
     // Optionally publish an instance to JavaScript
     auto obj = std::make_shared<MyObject>();
-    webbridge::publishObject<MyObject>(nullptr, "myObject", obj);
+    webbridge::publish_object<MyObject>(nullptr, "myObject", obj);
 
     // ... initialize and run your webview ...
 }

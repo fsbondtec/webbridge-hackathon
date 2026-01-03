@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Impl/PropertyImpl.h"
-#include "Impl/EventImpl.h"
+#include "impl/property_impl.h"
+#include "impl/event_impl.h"
 #include <webview/webview.h>
 #include <memory>
 
@@ -10,14 +10,14 @@ namespace webbridge {
 /**
  * Base object for all web-exposed classes
  */
-class Object
+class object
 {
 public:
 	template<typename T>
-	using Property = Impl::Property<T>;
+	using property = impl::property<T>;
 	
 	template<typename... Args>
-	using Event = Impl::Event<Args...>;
+	using event = impl::event<Args...>;
 };
 
 // =========================================
@@ -31,8 +31,8 @@ public:
  * @param w WebView instance
  */
 template<typename T>
-void registerType(webview::webview* w) {
-	static_assert(sizeof(T) == 0, "registerType<T> must be specialized. Include the generated _registration.h file.");
+void register_type(webview::webview* w) {
+	static_assert(sizeof(T) == 0, "register_type<T> must be specialized. Include the generated _registration.h file.");
 }
 
 /**
@@ -44,8 +44,8 @@ void registerType(webview::webview* w) {
  * @param obj Shared pointer to the object to publish
  */
 template<typename T>
-void publishObject(webview::webview* w, std::string_view name, std::shared_ptr<T> obj) {
-	static_assert(sizeof(T) == 0, "publishObject<T> must be specialized. Include the generated _registration.h file.");
+void publish_object(webview::webview* w, std::string_view name, std::shared_ptr<T> obj) {
+	static_assert(sizeof(T) == 0, "publish_object<T> must be specialized. Include the generated _registration.h file.");
 }
 
 }

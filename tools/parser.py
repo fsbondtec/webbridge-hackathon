@@ -301,8 +301,8 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
             template_name, template_args = _extract_template_info(source_code, type_node)
             member_name = _get_node_text(source_code, declarator_node)
 
-            # Property oder Event?
-            if template_name == 'Property':
+            # Property oder Event? (supports both old PascalCase and new snake_case)
+            if template_name in ('Property', 'property'):
                 prop_type = 'unknown'
                 if template_args:
                     type_desc = _find_child_by_type(template_args, 'type_descriptor')
@@ -311,7 +311,7 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
                 class_info.properties.append(PropertyInfo(name=member_name, type_name=prop_type))
                 return
 
-            elif template_name == 'Event':
+            elif template_name in ('Event', 'event'):
                 arg_types = []
                 if template_args:
                     arg_types = [_normalize_type(source_code, child)

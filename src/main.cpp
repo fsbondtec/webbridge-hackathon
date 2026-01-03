@@ -38,24 +38,24 @@ int WINAPI WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,
 		w.set_size(900, 700, WEBVIEW_HINT_NONE);
 
 		// Register error handler
-		webbridge::setErrorHandler([](webbridge::Error& error, const std::exception& ex) {
+		webbridge::set_error_handler([](webbridge::error& err, const std::exception& ex) {
 			pfd::message(
-				"Error " + std::to_string(error.code),
-				error.message,
+				"Error " + std::to_string(err.code),
+				err.message,
 				pfd::choice::ok,
 				pfd::icon::error
 			);
 		});
 
 		// Register type -> needs to be created in js
-		webbridge::registerType<MyObject>(&w);
+		webbridge::register_type<MyObject>(&w);
 
 		// Publish a existing object to js
 		auto globalObject = std::make_shared<MyObject>();
 		globalObject->strProp = "Published from C++!";
 		globalObject->counter = 42;
 		globalObject->aBool = true;
-		webbridge::publishObject<MyObject>(&w, "globalMyObject", globalObject);
+		webbridge::publish_object<MyObject>(&w, "globalMyObject", globalObject);
 		std::thread([globalObject]() {
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 			globalObject->strProp = "Updated from C++ after 2s";
