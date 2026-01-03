@@ -9,9 +9,13 @@ std::string generateJsGlobalRegistry()
 (function() {
 	'use strict';
 
-	if (!window.__webbridge_objects) {
-		window.__webbridge_objects = {};
+	// Nur einmal initialisieren
+	if (window.__webbridge_initialized) {
+		return;
 	}
+
+	window.__webbridge_objects = {};
+	window.__webbridge_initialized = true;
 
 	window.__webbridge_notify = function(objectId, propName, value) {
 		const obj = window.__webbridge_objects[objectId];
