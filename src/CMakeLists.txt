@@ -39,8 +39,8 @@ set(webbridge_hackathon_WebBridge_SOURCES
 	webbridge/impl/type_registration.h
 	webbridge/impl/type_registration.cpp
 
-	webbridge/Error.h
-	webbridge/Object.h
+	webbridge/error.h
+	webbridge/object.h
 )
 
 set(webbridge_hackathon_TO_REGISTRATION_SOURCES

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "webbridge/Object.h"
+#include "webbridge/object.h"
 
 #include <string>
 #include <vector>
