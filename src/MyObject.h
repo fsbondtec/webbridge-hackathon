@@ -8,31 +8,6 @@
 #include <magic_enum/magic_enum.hpp>
 
 
-enum class Status {
-	Idle,
-	Running,
-	Completed,
-	Error
-};
-
-inline void to_json(nlohmann::json& j, const Status& e) {
-	j = std::string(magic_enum::enum_name(e));
-}
-
-inline void from_json(const nlohmann::json& j, Status& e) {
-	auto name = j.get<std::string>();
-	auto value = magic_enum::enum_cast<Status>(name);
-	if (value.has_value()) {
-		e = value.value();
-	}
-	else {
-		throw nlohmann::json::type_error::create(
-			302,
-			"Invalid enum value: '" + name + "' for type Status",
-			nullptr
-		);
-	}
-}
 
 struct Pod { 
 	unsigned a; unsigned long long b; 
@@ -52,6 +27,13 @@ inline void from_json(const nlohmann::json& j, Pod& p) {
 class MyObject : public webbridge::object
 {
 public:
+	enum class Status {
+		Idle,
+		Running,
+		Completed,
+		Error
+	};
+
 	property<bool> aBool{ false };
 	property<std::string> strProp;
 	property<int> counter{ 0 };
@@ -91,3 +73,22 @@ public:
 private:
 
 };
+
+inline void to_json(nlohmann::json& j, const MyObject::Status& e) {
+	j = std::string(magic_enum::enum_name(e));
+}
+
+inline void from_json(const nlohmann::json& j, MyObject::Status& e) {
+	auto name = j.get<std::string>();
+	auto value = magic_enum::enum_cast<MyObject::Status>(name);
+	if (value.has_value()) {
+		e = value.value();
+	}
+	else {
+		throw nlohmann::json::type_error::create(
+			302,
+			"Invalid enum value: '" + name + "' for type MyObject::Status",
+			nullptr
+		);
+	}
+}
