@@ -257,13 +257,6 @@ std::string generate_js_published_object(
 )", constant, type_name);
 	}
 
-	// Copy static constants to instance for convenience
-	for (const auto& constant : static_constants) {
-		js += std::format(R"(
-	obj.{0} = await __get_{1}_static_{0}(obj.__handle);
-)", constant, type_name);
-	}
-
 	for (const auto& method : sync_methods) {
 		js += std::format(R"(
 	obj.{0} = async function(...args) {{

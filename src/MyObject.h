@@ -53,7 +53,7 @@ public:
 
 	// prop<bool>
 	// event<>
-	property<bool> aBool{ false };
+	property<bool> aBool;
 	property<std::string> strProp;
 	property<int> counter{ 0 };
 	property<std::vector<int>> numbers;

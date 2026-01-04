@@ -239,33 +239,31 @@
       <div class="properties global-object">
         <h2>🌍 Global Object (Published from C++)</h2>
         <div class="property-grid">
-          {#if globalABool && globalStrProp && globalCounter && globalNumbers && globalStatus && globalPod}
-            <div class="property">
-              <span class="property-label">aBool:</span>
-              <span class="value">{$globalABool}</span>
-            </div>
-            <div class="property">
-              <span class="property-label">strProp:</span>
-              <span class="value">{$globalStrProp || '(empty)'}</span>
-            </div>
-            <div class="property">
-              <span class="property-label">counter:</span>
-              <span class="value">{$globalCounter}</span>
-            </div>
-            <div class="property">
-              <span class="property-label">numbers:</span>
-              <span class="value">[{$globalNumbers ? $globalNumbers.join(', ') : ''}]</span>
-            </div>
-            <div class="property">
-              <span class="property-label">status:</span>
-              <span class="value status-{$globalStatus ? $globalStatus.toLowerCase() : 'idle'}">{$globalStatus || 'Idle'}</span>
-            </div>
-            {#if $globalPod}
-            <div class="property">
-              <span class="property-label">pod:</span>
-              <span class="value">{`{ a: ${$globalPod.a}, b: ${$globalPod.b} }`}</span>
-            </div>
-            {/if}
+          <div class="property">
+            <span class="property-label">aBool:</span>
+            <span class="value">{$globalABool}</span>
+          </div>
+          <div class="property">
+            <span class="property-label">strProp:</span>
+            <span class="value">{$globalStrProp || '(empty)'}</span>
+          </div>
+          <div class="property">
+            <span class="property-label">counter:</span>
+            <span class="value">{$globalCounter}</span>
+          </div>
+          <div class="property">
+            <span class="property-label">numbers:</span>
+            <span class="value">[{$globalNumbers ? $globalNumbers.join(', ') : ''}]</span>
+          </div>
+          <div class="property">
+            <span class="property-label">status:</span>
+            <span class="value status-{$globalStatus ? $globalStatus.toLowerCase() : 'idle'}">{$globalStatus || 'Idle'}</span>
+          </div>
+          {#if $globalPod}
+          <div class="property">
+            <span class="property-label">pod:</span>
+            <span class="value">{`{ a: ${$globalPod.a}, b: ${$globalPod.b} }`}</span>
+          </div>
           {/if}
         </div>
         <p class="info-text">
