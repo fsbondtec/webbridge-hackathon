@@ -125,8 +125,19 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
     ));
 
     // Object creation
+{% set ctor = cls.constructors[0] if cls.constructors else none %}
     w_ref.bind("__create_{{ cls.name }}", [&registry, &w_ref](const std::string& req) -> std::string {
+{% if ctor and ctor.parameters %}
+        auto args = nlohmann::json::parse(req);
+        auto obj = std::make_shared<{{ cls.name }}>(
+{% for param in ctor.parameters %}
+            args[{{ loop.index0 }}].get<{{ param[0] }}>(){% if not loop.last %},{% endif %}
+
+{% endfor %}
+        );
+{% else %}
         auto obj = std::make_shared<{{ cls.name }}>();
+{% endif %}
         auto object_id = registry.register_object(obj, "{{ cls.name }}");
         impl::setup_subscriptions(w_ref, object_id, obj);
         return nlohmann::json(object_id).dump();

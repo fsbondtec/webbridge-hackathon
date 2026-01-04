@@ -36,7 +36,7 @@
       log('Creating object...', 'info');
 
       log(`Static constant appversion: ${window.MyObject.appversion}`, 'info');
-      const newObj = await window.MyObject.create();
+      const newObj = await window.MyObject.create('fab');
       log(`Object created: ${newObj.handle}`, 'success');
       newObj.aEvent.on((intVal, boolVal) => {
         log(`🔔 Event received: int=${intVal}, bool=${boolVal}`);

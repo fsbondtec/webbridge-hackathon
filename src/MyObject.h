@@ -68,7 +68,6 @@ public:
 
 public:
 	explicit MyObject(const std::string& version_) : version(version_) {}
-	explicit MyObject() : version("unknown") {;}
 
 	[[async]] void foo(const std::string& val);
 

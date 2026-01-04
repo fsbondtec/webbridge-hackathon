@@ -51,7 +51,7 @@ int WINAPI WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,
 		webbridge::register_type<MyObject>(&w);
 
 		// Publish a existing object to js
-		auto globalObject = std::make_shared<MyObject>();
+		auto globalObject = std::make_shared<MyObject>("Published from C++!");
 		globalObject->strProp = "Published from C++!";
 		globalObject->counter = 42;
 		globalObject->aBool = true;
