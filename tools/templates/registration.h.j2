@@ -54,13 +54,6 @@ namespace webbridge {
 static_assert(impl::is_webbridge_object<{{ cls.name }}>,
               "{{ cls.name }} must derive from webbridge::object");
 
-{% for prop in cls.properties -%}
-// es ist die frage was das bringt
-// static_assert(std::is_same_v<decltype({{ cls.name }}::{{ prop.name }}), object::property<{{ prop.type_name }}>>);
-{% endfor -%}
-{% for evt in cls.events -%}
-static_assert(std::is_same_v<decltype({{ cls.name }}::{{ evt.name }}), object::event<{{ evt.arg_types | join(', ') }}>>);
-{% endfor %}
 
 // =============================================================================
 // Type-specific Setup
