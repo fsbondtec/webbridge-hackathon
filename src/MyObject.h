@@ -34,6 +34,25 @@ public:
 		Error
 	};
 
+
+//  Q_PROPERTY(READ aBool WRITE setABool NOTIFY aBoolChanged)
+//  void aBool() const {
+//		return_aBool;
+//	}
+//	void setABool(bool v) {
+//		if (v != _aBool) {
+//			_aBool = v;
+//			emit aBoolChanged();
+//		}
+//	}
+// signals:
+//	void aBoolChanged();
+// private:
+//  bool _aBool;
+
+
+	// prop<bool>
+	// event<>
 	property<bool> aBool{ false };
 	property<std::string> strProp;
 	property<int> counter{ 0 };
@@ -73,22 +92,3 @@ public:
 private:
 
 };
-
-inline void to_json(nlohmann::json& j, const MyObject::Status& e) {
-	j = std::string(magic_enum::enum_name(e));
-}
-
-inline void from_json(const nlohmann::json& j, MyObject::Status& e) {
-	auto name = j.get<std::string>();
-	auto value = magic_enum::enum_cast<MyObject::Status>(name);
-	if (value.has_value()) {
-		e = value.value();
-	}
-	else {
-		throw nlohmann::json::type_error::create(
-			302,
-			"Invalid enum value: '" + name + "' for type MyObject::Status",
-			nullptr
-		);
-	}
-}

@@ -14,6 +14,37 @@
 #include "webbridge/impl/binding_helpers.h"
 #include "{{ header_path }}"
 
+{% if cls.enums -%}
+// =============================================================================
+// JSON Serialization for Nested Enums
+// =============================================================================
+
+{% for enum in cls.enums -%}
+inline void to_json(nlohmann::json& j, const {{ cls.name }}::{{ enum.name }}& e) {
+    switch (e) {
+{% for value in enum.enum_values %}
+        case {{ cls.name }}::{{ enum.name }}::{{ value }}: j = "{{ value }}"; break;
+{% endfor %}
+        default: j = nullptr; break;
+    }
+}
+
+inline void from_json(const nlohmann::json& j, {{ cls.name }}::{{ enum.name }}& e) {
+    const auto& name = j.get<std::string>();
+{% for value in enum.enum_values %}
+    {{ "if" if loop.first else "else if" }} (name == "{{ value }}") e = {{ cls.name }}::{{ enum.name }}::{{ value }};
+{% endfor %}
+    else {
+        throw nlohmann::json::type_error::create(
+            302,
+            "Invalid enum value: '" + name + "' for type {{ cls.name }}::{{ enum.name }}",
+            nullptr
+        );
+    }
+}
+
+{% endfor -%}
+{% endif -%}
 namespace webbridge {
 
 // =============================================================================
