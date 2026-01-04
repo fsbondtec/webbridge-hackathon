@@ -265,4 +265,53 @@ void bind_async_method(
 		}, nullptr);
 }
 
+// =============================================================================
+// Instance Constant Getter Binding
+// =============================================================================
+
+template<is_webbridge_object TObj, typename T>
+void bind_instance_constant_getter(
+	webview::webview& w_ref,
+	object_registry& registry,
+	std::string_view type_name,
+	std::string_view const_name,
+	T TObj::* const_ptr)
+{
+	auto bind_name = std::format("__get_{}_{}", type_name, const_name);
+	
+	w_ref.bind(bind_name,
+		[&registry, const_ptr](const std::string& req_id, const std::string& req, void* w_ptr) {
+			auto& w_ref = *static_cast<webview::webview*>(w_ptr);
+			auto [status, json] = invoke_and_serialize([&]() {
+				auto args = nlohmann::json::parse(req);
+				auto obj = get_object_or_throw<TObj>(registry, extract_object_id(args));
+				return obj.get()->*const_ptr;
+			});
+			w_ref.resolve(req_id, status, json);
+		}, &w_ref);
+}
+
+// =============================================================================
+// Static Constant Getter Binding
+// =============================================================================
+
+template<is_webbridge_object TObj, typename T>
+void bind_static_constant_getter(
+	webview::webview& w_ref,
+	std::string_view type_name,
+	std::string_view const_name,
+	const T& value)
+{
+	auto bind_name = std::format("__get_{}_static_{}", type_name, const_name);
+	
+	w_ref.bind(bind_name,
+		[value](const std::string& req_id, const std::string& req, void* w_ptr) {
+			auto& w_ref = *static_cast<webview::webview*>(w_ptr);
+			auto [status, json] = invoke_and_serialize([&]() {
+				return value;
+			});
+			w_ref.resolve(req_id, status, json);
+		}, &w_ref);
+}
+
 } // namespace webbridge::impl

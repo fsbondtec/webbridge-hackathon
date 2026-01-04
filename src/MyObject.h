@@ -35,9 +35,9 @@ public:
 	};
 
 
-//  Q_PROPERTY(READ aBool WRITE setABool NOTIFY aBoolChanged)
+//  Q_PROPERTY(bool READ aBool WRITE setABool NOTIFY aBoolChanged)
 //  void aBool() const {
-//		return_aBool;
+//		return _aBool;
 //	}
 //	void setABool(bool v) {
 //		if (v != _aBool) {
@@ -64,7 +64,7 @@ public:
 	// konstanten
 	const std::string version;
 	static inline const std::string appversion{"app version"};
-	static inline constexpr unsigned cppversion{23};
+	static inline constexpr unsigned CPP_VERSION{23};
 
 public:
 	explicit MyObject(const std::string& version_) : version(version_) {}

@@ -80,7 +80,7 @@ Every class to be exposed to the web must inherit from `webbridge::object`. The 
 * **Methods** – Public C++ methods are automatically available in JavaScript
 * **Properties** – Exposed as Svelte-compatible stores (read-only)
 * **Events** – Trigger custom event listeners in JavaScript
-
+* **Constants** - Readonly JS values
 ### Methods
 
 All public methods of a `webbridge::object` class are automatically published to JavaScript.
@@ -94,6 +94,10 @@ Properties are similar to primitive data types but require access via the parent
 ### Events
 
 Events are the WebBridge equivalent of the Qt signal/slot mechanism.
+
+### Constants
+
+WebBridge supports exposing constants as both **static** (class-wide) and **non-static** (instance-specific). Both variants are automatically exported to JavaScript and are available there as read-only values.
 
 ### Error Handling
 
@@ -127,9 +131,12 @@ The following example shows how to define a C++ class with methods, properties, 
 
 class MyObject : public webbridge::object
 {
+public:
     property<bool> a_bool = false;
     property<std::string> str_prop;
     event<int, bool> a_event;
+    inline static constexpr auto PI = 3.141592654;
+    const std::string version = "1.0";
 
 public:
     [[async]] void foo(std::string_view val) {
@@ -188,6 +195,15 @@ myObj.a_event.once((intValue, boolValue) => {
 });
 ```
 
+### Accessing Constants in JavaScript
+
+```js
+const myObj = await MyObject.create();
+console.log(myObj.version); // Instance constant: "1.0"
+console.log(MyObject.PI);   // Static constant: 3.141592654
+```
+
+
 ## Registration and Publish
 
 To make C++ classes available in JavaScript, they must be explicitly registered. The code generator creates the necessary binding files, which are then included in CMake. In your `main.cpp`, you must call the generated registration function:
@@ -214,7 +230,7 @@ The current implementation has the following limitations that are not yet suppor
 
 - **Multiple Constructors**: Classes with overloaded constructors are not supported. Only a single parameterless constructor is currently handled.
 - **Constructors with Parameters**: The code generator does not yet support constructors that take arguments. All objects must be instantiated using a default constructor.
-- **Enum Resolution in TypeScript**: C++ enums are not automatically converted to TypeScript enum types. They currently require manual type definitions in the frontend.
+- ~~**Enum Resolution in TypeScript**: C++ enums are not automatically converted to TypeScript enum types. They currently require manual type definitions in the frontend.~~
 
 ## License
 

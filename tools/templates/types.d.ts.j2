@@ -30,6 +30,16 @@ export interface {{ cls.name }} {
   };
 {% endfor %}
 
+  // Instance Constants (read-only, fetched once at object creation)
+{% for const in cls.constants if not const.is_static %}
+  readonly {{ const.name }}: {{ const.type_name | ts_type }};
+{% endfor %}
+
+  // Static Constants (also available on instances for convenience)
+{% for const in cls.constants if const.is_static %}
+  readonly {{ const.name }}: {{ const.type_name | ts_type }};
+{% endfor %}
+
   // Events
 {% for event in cls.events %}
   {{ event.name }}: {
@@ -51,6 +61,9 @@ export interface {{ cls.name }} {
 // Factory interface - window.MyObject is the class with static create()
 export interface {{ cls.name }}Static {
   create: () => Promise<{{ cls.name }}>;
+{% for const in cls.constants if const.is_static %}
+  readonly {{ const.name }}: {{ const.type_name | ts_type }};
+{% endfor %}
 }
 
 declare global {

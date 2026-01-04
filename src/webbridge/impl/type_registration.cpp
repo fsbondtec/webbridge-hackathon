@@ -45,7 +45,9 @@ std::string generate_js_class_wrapper(
 	const std::vector<std::string>& sync_methods,
 	const std::vector<std::string>& async_methods,
 	const std::vector<std::string>& properties,
-	const std::vector<std::string>& events)
+	const std::vector<std::string>& events,
+	const std::vector<std::string>& instance_constants,
+	const std::vector<std::string>& static_constants)
 {
 	std::string js = std::format(R"(
 (function() {{
@@ -110,6 +112,20 @@ std::string generate_js_class_wrapper(
 )", evt);
 	}
 
+	// Fetch instance constants eagerly
+	for (const auto& constant : instance_constants) {
+		js += std::format(R"(
+			obj.{0} = await __get_{1}_{0}(obj.#handle);
+)", constant, type_name);
+	}
+
+	// Copy static constants to instance for convenience (obj.cppversion)
+	for (const auto& constant : static_constants) {
+		js += std::format(R"(
+			obj.{0} = {1}.{0};
+)", constant, type_name);
+	}
+
 	js += R"(
 			// FinalizationRegistry als Safety-Net
 			_pointers.register(obj, obj.#handle, obj);
@@ -164,8 +180,26 @@ std::string generate_js_class_wrapper(
 	}};
 
 	window.{0} = {0};
-}})();
 )", type_name);
+
+	// Add static constants to the class (MyObject.cppversion)
+	for (const auto& constant : static_constants) {
+		js += std::format(R"(
+	// Fetch static constant asynchronously and define as property
+	__get_{0}_static_{1}().then(v => {{
+		Object.defineProperty(window.{0}, '{1}', {{
+			value: v,
+			writable: false,
+			enumerable: true,
+			configurable: false
+		}});
+	}});
+)", type_name, constant);
+	}
+
+	js += R"(
+})();
+)";
 
 	return js;
 }
@@ -177,7 +211,9 @@ std::string generate_js_published_object(
 	const std::vector<std::string>& sync_methods,
 	const std::vector<std::string>& async_methods,
 	const std::vector<std::string>& properties,
-	const std::vector<std::string>& events)
+	const std::vector<std::string>& events,
+	const std::vector<std::string>& instance_constants,
+	const std::vector<std::string>& static_constants)
 {
 	std::string js = std::format(R"(
 (async function() {{
@@ -226,6 +262,20 @@ std::string generate_js_published_object(
 		}}
 	}};
 )", evt);
+	}
+
+	// Fetch instance constants
+	for (const auto& constant : instance_constants) {
+		js += std::format(R"(
+	obj.{0} = await __get_{1}_{0}(obj.__handle);
+)", constant, type_name);
+	}
+
+	// Copy static constants to instance for convenience
+	for (const auto& constant : static_constants) {
+		js += std::format(R"(
+	obj.{0} = window.{1}.{0};
+)", constant, type_name);
 	}
 
 	for (const auto& method : sync_methods) {

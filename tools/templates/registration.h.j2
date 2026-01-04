@@ -89,6 +89,14 @@ inline void bind_all(webview::webview& w_ref, object_registry& registry)
 {% for prop in cls.properties %}
     bind_property_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ prop.name }}", &{{ cls.name }}::{{ prop.name }});
 {% endfor %}
+    // Instance Constant Getters
+{% for const in cls.constants if not const.is_static %}
+    bind_instance_constant_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ const.name }}", &{{ cls.name }}::{{ const.name }});
+{% endfor %}
+    // Static Constant Getters
+{% for const in cls.constants if const.is_static %}
+    bind_static_constant_getter<{{ cls.name }}>(w_ref, "{{ cls.name }}", "{{ const.name }}", {{ cls.name }}::{{ const.name }});
+{% endfor %}
     // Sync Methods
 {% for method in cls.sync_methods %}
     bind_sync_method<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
@@ -118,7 +126,9 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
         {{ cls.sync_methods | json_names }},
         {{ cls.async_methods | json_names }},
         {{ cls.properties | json_names }},
-        {{ cls.events | json_names }}
+        {{ cls.events | json_names }},
+        {{ cls.constants | selectattr('is_static', 'false') | list | json_names }},
+        {{ cls.constants | selectattr('is_static') | list | json_names }}
     ));
 
     // Object creation
@@ -156,7 +166,9 @@ inline void publish_object<{{ cls.name }}>(webview::webview* w, std::string_view
         {{ cls.sync_methods | json_names }},
         {{ cls.async_methods | json_names }},
         {{ cls.properties | json_names }},
-        {{ cls.events | json_names }}
+        {{ cls.events | json_names }},
+        {{ cls.constants | selectattr('is_static', 'false') | list | json_names }},
+        {{ cls.constants | selectattr('is_static') | list | json_names }}
     ));
 }
 

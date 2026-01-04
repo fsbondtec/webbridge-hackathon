@@ -32,8 +32,40 @@ python tools/generate.py src/MyObject.h --class-name MyObject --cpp_out=build/sr
 - **Properties**: `property<T>` fields
 - **Events**: `event<Args...>` fields
 - **Enums**: `enum` and `enum class` definitions
+- **Constants**: `const` and `static const`/`constexpr` fields (see below)
 - **Async Methods**: Methods with `[[async]]` attribute
 - **Sync Methods**: All other public methods
+
+### Constants
+
+Constants are automatically exposed to JavaScript with the following access patterns:
+
+**Instance constants** (e.g., `const std::string version;`):
+- Accessible only via object instance: `obj.version`
+- Fetched once at object creation
+
+**Static constants** (e.g., `static inline const std::string appversion;` or `static inline constexpr unsigned cppversion;`):
+- Accessible via type: `MyObject.cppversion`
+- Also accessible via instance for convenience: `obj.cppversion`
+- Fetched once at type registration
+
+Example:
+```cpp
+class MyObject : public webbridge::object {
+public:
+    const std::string version;                           // instance constant
+    static inline const std::string appversion{"1.0"};   // static constant
+    static inline constexpr unsigned cppversion{23};     // static constexpr
+};
+```
+
+JavaScript usage:
+```javascript
+const obj = await window.MyObject.create();
+console.log(obj.version);         // instance constant
+console.log(obj.cppversion);      // static via instance
+console.log(MyObject.cppversion); // static via type
+```
 
 ### CMake Integration
 
