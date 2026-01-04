@@ -1,6 +1,25 @@
 // Auto-generated TypeScript definitions for {{ cls.name }}
 // Generated from: {{ header_path }}
 
+// Enums
+{% for enum in cls.enums %}
+{% if enum.is_enum_class %}
+export namespace {{ cls.name }} {
+  export enum {{ enum.name }} {
+{% for value in enum.enum_values %}
+    {{ value }} = "{{ value }}"{{ "," if not loop.last }}
+{% endfor %}
+  }
+}
+{% else %}
+export enum {{ enum.name }} {
+{% for value in enum.enum_values %}
+  {{ value }} = "{{ value }}"{{ "," if not loop.last }}
+{% endfor %}
+}
+{% endif %}
+{% endfor %}
+
 export interface {{ cls.name }} {
   handle: string;
 
