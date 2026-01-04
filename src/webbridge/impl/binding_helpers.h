@@ -292,26 +292,27 @@ void bind_instance_constant_getter(
 }
 
 // =============================================================================
-// Static Constant Getter Binding
+// Static Constant Definition
 // =============================================================================
 
-template<is_webbridge_object TObj, typename T>
-void bind_static_constant_getter(
+template<typename T>
+void define_static_constant(
 	webview::webview& w_ref,
 	std::string_view type_name,
 	std::string_view const_name,
 	const T& value)
 {
-	auto bind_name = std::format("__get_{}_static_{}", type_name, const_name);
-	
-	w_ref.bind(bind_name,
-		[value](const std::string& req_id, const std::string& req, void* w_ptr) {
-			auto& w_ref = *static_cast<webview::webview*>(w_ptr);
-			auto [status, json] = invoke_and_serialize([&]() {
-				return value;
-			});
-			w_ref.resolve(req_id, status, json);
-		}, &w_ref);
+	auto json_val = nlohmann::json(value).dump();
+	auto snipped = std::format(
+		R"(Object.defineProperty(window.{}, '{}', {{
+			value: {},
+			writable: false,
+			enumerable: true,
+			configurable: false
+		}});)",
+		type_name, const_name, json_val
+	); 
+	w_ref.init(snipped);
 }
 
 } // namespace webbridge::impl

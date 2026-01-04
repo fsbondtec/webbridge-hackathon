@@ -93,9 +93,9 @@ inline void bind_all(webview::webview& w_ref, object_registry& registry)
 {% for const in cls.constants if not const.is_static %}
     bind_instance_constant_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ const.name }}", &{{ cls.name }}::{{ const.name }});
 {% endfor %}
-    // Static Constant Getters
+    // Static Constants
 {% for const in cls.constants if const.is_static %}
-    bind_static_constant_getter<{{ cls.name }}>(w_ref, "{{ cls.name }}", "{{ const.name }}", {{ cls.name }}::{{ const.name }});
+    define_static_constant(w_ref, "{{ cls.name }}", "{{ const.name }}", {{ cls.name }}::{{ const.name }});
 {% endfor %}
     // Sync Methods
 {% for method in cls.sync_methods %}

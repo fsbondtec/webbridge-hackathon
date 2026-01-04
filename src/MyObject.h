@@ -63,7 +63,7 @@ public:
 
 	// konstanten
 	const std::string version;
-	static inline const std::string appversion{"app version"};
+	static inline const std::string appversion{"myapp 1.0"};
 	static inline constexpr unsigned CPP_VERSION{23};
 
 public:

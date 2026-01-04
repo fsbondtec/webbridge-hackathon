@@ -35,11 +35,16 @@
     try {
       log('Creating object...', 'info');
 
+      log(`Static constant appversion: ${window.MyObject.appversion}`, 'info');
       const newObj = await window.MyObject.create();
       log(`Object created: ${newObj.handle}`, 'success');
       newObj.aEvent.on((intVal, boolVal) => {
         log(`🔔 Event received: int=${intVal}, bool=${boolVal}`);
       });
+
+      // Log constants (instance and static)
+      log(`Instance constant version: ${newObj.version}`, 'info');
+      log(`Static constant CPP_VERSION: ${newObj.CPP_VERSION}`, 'info');
 
       obj = newObj;
     } catch (error) {

@@ -122,7 +122,7 @@ std::string generate_js_class_wrapper(
 	// Copy static constants to instance for convenience (obj.cppversion)
 	for (const auto& constant : static_constants) {
 		js += std::format(R"(
-			obj.{0} = {1}.{0};
+			obj.{0} = window.{1}.{0};
 )", constant, type_name);
 	}
 
@@ -182,20 +182,6 @@ std::string generate_js_class_wrapper(
 	window.{0} = {0};
 )", type_name);
 
-	// Add static constants to the class (MyObject.cppversion)
-	for (const auto& constant : static_constants) {
-		js += std::format(R"(
-	// Fetch static constant asynchronously and define as property
-	__get_{0}_static_{1}().then(v => {{
-		Object.defineProperty(window.{0}, '{1}', {{
-			value: v,
-			writable: false,
-			enumerable: true,
-			configurable: false
-		}});
-	}});
-)", type_name, constant);
-	}
 
 	js += R"(
 })();
@@ -274,7 +260,7 @@ std::string generate_js_published_object(
 	// Copy static constants to instance for convenience
 	for (const auto& constant : static_constants) {
 		js += std::format(R"(
-	obj.{0} = window.{1}.{0};
+	obj.{0} = await __get_{1}_static_{0}(obj.__handle);
 )", constant, type_name);
 	}
 
