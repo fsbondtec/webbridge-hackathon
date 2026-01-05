@@ -76,7 +76,7 @@ inline void setup_subscriptions(
 {% endfor -%}
 }
 
-inline void bind_all(webview::webview& w_ref, object_registry& registry)
+inline void bind_all_{{ cls.name }}(webview::webview& w_ref, object_registry& registry)
 {
 {% for prop in cls.properties %}
     bind_property_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ prop.name }}", &{{ cls.name }}::{{ prop.name }});
@@ -152,7 +152,7 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
     });
 
     // All C++ bindings (property getters, methods)
-    impl::bind_all(w_ref, registry);
+    impl::bind_all_{{ cls.name }}(w_ref, registry);
 }
 
 } // namespace webbridge

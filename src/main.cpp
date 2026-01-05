@@ -1,3 +1,4 @@
+#include "TestObject_registration.h"
 #include "MyObject_registration.h"
 #include "ResourceServer.h"
 #include "webbridge/Object.h"
@@ -59,13 +60,21 @@ int WINAPI WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,
 			);
 		});
 
+		// Register TestObject BEFORE MyObject
+		std::cout << "Starting register_type for TestObject..." << std::endl;
+		auto start_test = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject>(&w);
+		auto end_test = std::chrono::high_resolution_clock::now();
+		auto duration_test = std::chrono::duration_cast<std::chrono::milliseconds>(end_test - start_test);
+		std::cout << "register_type for TestObject took " << duration_test.count() << " ms" << std::endl;
+
 		// Register type -> needs to be created in js
-	std::cout << "Starting register_type for MyObject..." << std::endl;
-	auto start = std::chrono::high_resolution_clock::now();
-	webbridge::register_type<MyObject>(&w);
-	auto end = std::chrono::high_resolution_clock::now();
-	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-	std::cout << "register_type took " << duration.count() << " ms" << std::endl;
+		std::cout << "Starting register_type for MyObject..." << std::endl;
+		auto start = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<MyObject>(&w);
+		auto end = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+		std::cout << "register_type took " << duration.count() << " ms" << std::endl;
 
 		w.navigate(server.get_url());		
 		w.run();

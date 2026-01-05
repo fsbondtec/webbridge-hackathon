@@ -23,6 +23,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(webbridge_hackathon_SOURCES
 	main.cpp
+	TestObject.cpp
 	MyObject.cpp
 	ResourceServer.h
 	webbridge/impl/error_handler.cpp
@@ -44,6 +45,7 @@ set(webbridge_hackathon_WebBridge_SOURCES
 )
 
 set(webbridge_hackathon_TO_REGISTRATION_SOURCES
+	TestObject.h
 	MyObject.h
 )
 
