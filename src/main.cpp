@@ -7,10 +7,22 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <cstdio>
+#include <fstream>
+#include <iostream>
 
 int WINAPI WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,
 	LPSTR /*lpCmdLine*/, int /*nCmdShow*/)
 {
+	//AllocConsole();
+	freopen("CONOUT$", "w", stdout);
+	freopen("CONOUT$", "w", stderr);
+	
+	// Open timing log file
+	std::ofstream timing_log("timing_trace.log", std::ios::app);
+	std::streambuf* cout_backup = std::cout.rdbuf();
+	std::cout.rdbuf(timing_log.rdbuf());
+
 	try {
 		// Start HTTP server with embedded resources
 		ResourceServer server;
@@ -48,8 +60,12 @@ int WINAPI WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,
 		});
 
 		// Register type -> needs to be created in js
-		webbridge::register_type<MyObject>(&w);
-
+	std::cerr << "Starting register_type for MyObject..." << std::endl;
+	auto start = std::chrono::high_resolution_clock::now();
+	webbridge::register_type<MyObject>(&w);
+	auto end = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	std::cerr << "register_type took " << duration.count() << " ms" << std::endl;
 		// Publish a existing object to js
 		auto globalObject = std::make_shared<MyObject>("Published from C++!");
 		globalObject->strProp = "Published from C++!";
@@ -67,6 +83,10 @@ int WINAPI WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,
 
 		w.navigate(server.get_url());		
 		w.run();
+		
+		// Restore cout and close timing log
+		std::cout.rdbuf(cout_backup);
+		timing_log.close();
 	} catch (const webview::exception &e) {
 		std::cerr << e.what() << '\n';
 		return 1;

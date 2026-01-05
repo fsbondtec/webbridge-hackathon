@@ -5,37 +5,20 @@ namespace webbridge::impl {
 
 std::string generate_js_global_registry()
 {
+	// The runtime is loaded from frontend/src/webbridge/webbridge-runtime.ts
+	// This function does minimal setup - no fallback needed for production
 	return R"(
 (function() {
 	'use strict';
 
-	// Nur einmal initialisieren
-	if (window.__webbridge_initialized) {
+	// Runtime should be initialized by import in main.ts
+	// This is just a safety check
+	if (!window.WebbridgeRuntime) {
+		console.warn('[WebBridge] Runtime not found - make sure webbridge-runtime is imported in main.ts');
 		return;
 	}
 
-	window.__webbridge_objects = {};
-	window.__webbridge_initialized = true;
-
-	window.__webbridge_notify = function(objectId, propName, value) {
-		const obj = window.__webbridge_objects[objectId];
-		if (obj && obj[propName] && obj[propName]._notify) {
-			obj[propName]._notify(value);
-		} else {
-			console.warn('[WebBridge] Object or property not found for notify:', objectId, propName);
-		}
-	};
-
-	window.__webbridge_emit = function(objectId, eventName, ...args) {
-		const obj = window.__webbridge_objects[objectId];
-		if (obj && obj[eventName] && obj[eventName]._emit) {
-			obj[eventName]._emit(...args);
-		} else {
-			console.warn('[WebBridge] Object or event not found for emit:', objectId, eventName);
-		}
-	};
-
-	console.log('[WebBridge] Global registry initialized');
+	console.log('[WebBridge] Global registry initialized via runtime');
 })();
 )";
 }
@@ -49,142 +32,61 @@ std::string generate_js_class_wrapper(
 	const std::vector<std::string>& instance_constants,
 	const std::vector<std::string>& static_constants)
 {
+	// Helper to format array as JSON
+	auto to_json_array = [](const std::vector<std::string>& items) -> std::string {
+		if (items.empty()) return "[]";
+		std::string result = "[";
+		for (size_t i = 0; i < items.size(); ++i) {
+			if (i > 0) result += ", ";
+			result += "\"" + items[i] + "\"";
+		}
+		result += "]";
+		return result;
+	};
+
+	// Generate only metadata - Runtime must be loaded via Vite
+	// No fallback code - this is production-only and Runtime is guaranteed
 	std::string js = std::format(R"(
 (function() {{
 	'use strict';
 
-	const _pointers = new FinalizationRegistry(handle => {{
-		console.warn('[WebBridge] {0} wurde vom GC eingesammelt ohne destroy() - cleanup wird ausgeführt');
-		delete window.__webbridge_objects[handle];
-		__WebBridge_destroy(handle);
-	}});
-
-	class {0} {{
-		#handle = null;
-		#destroyed = false;
-
-		constructor() {{}}
-
-		static async create(...args) {{
-			const obj = new {0}();
-			obj.#handle = await __create_{0}(...args);
-			// Objekt im globalen Registry registrieren für C++ → JS Kommunikation
-			window.__webbridge_objects[obj.#handle] = obj;
-
-			// Properties als Svelte-Stores initialisieren
-)", type_name);
-
-
-	for (const auto& prop : properties) {
-		js += std::format(R"(
-			obj.{0} = {{
-				_subscribers: new Set(),
-				subscribe(fn) {{
-					this._subscribers.add(fn);
-					__get_{1}_{0}(obj.#handle).then(fn);
-					return () => this._subscribers.delete(fn);
-				}},
-				_notify(value) {{
-					this._subscribers.forEach(fn => fn(value));
-				}}
-			}};
-)", prop, type_name);
-	}
-
-	for (const auto& evt : events) {
-		js += std::format(R"(
-			obj.{0} = {{
-				_listeners: [],
-				on(fn) {{
-					this._listeners.push({{ fn, once: false }});
-					return () => this._listeners = this._listeners.filter(l => l.fn !== fn);
-				}},
-				once(fn) {{
-					this._listeners.push({{ fn, once: true }});
-				}},
-				_emit(...args) {{
-					this._listeners = this._listeners.filter(l => {{
-						l.fn(...args);
-						return !l.once;
-					}});
-				}}
-			}};
-)", evt);
-	}
-
-	// Fetch instance constants eagerly
-	for (const auto& constant : instance_constants) {
-		js += std::format(R"(
-			obj.{0} = await __get_{1}_{0}(obj.#handle);
-)", constant, type_name);
-	}
-
-	// Copy static constants to instance for convenience (obj.cppversion)
-	for (const auto& constant : static_constants) {
-		js += std::format(R"(
-			obj.{0} = window.{1}.{0};
-)", constant, type_name);
-	}
-
-	js += R"(
-			// FinalizationRegistry als Safety-Net
-			_pointers.register(obj, obj.#handle, obj);
-
-			return obj;
-		}
-
-		get handle() {
-			if (this.#destroyed) throw new Error('Object already destroyed');
-			return this.#handle;
-		}
-
-		destroy() {
-			if (this.#destroyed) return;
-			this.#destroyed = true;
-			// Aus Registry entfernen
-			delete window.__webbridge_objects[this.#handle];
-			_pointers.unregister(this);
-			__WebBridge_destroy(this.#handle);
-			this.#handle = null;
-		}
-)";
-
-	for (const auto& method : sync_methods) {
-		js += std::format(R"(
-		async {0}(...args) {{
-			return await __{1}_{0}(this.handle, ...args);
-		}}
-)", method, type_name);
-	}
-
-	for (const auto& method : async_methods) {
-		js += std::format(R"(
-		async {0}(...args) {{
-			return await __{1}_{0}(this.handle, ...args);
-		}}
-)", method, type_name);
-	}
-
-	js += std::format(R"(
+	// Runtime MUST be loaded - no fallback
+	if (!window.WebbridgeRuntime || !window.WebbridgeRuntime.createClass) {{
+		throw new Error('[WebBridge] Runtime not initialized. Make sure webbridge-runtime is imported in main.ts');
 	}}
 
-	// Inner class for published instances (created from C++)
-	{0}.__PublishedInstance = class {{
-		__handle = null;
+	// Register class using runtime metadata
+	window.{0} = window.WebbridgeRuntime.createClass({{
+		className: "{0}",
+		properties: {1},
+		events: {2},
+		syncMethods: {3},
+		asyncMethods: {4},
+		instanceConstants: {5},
+		staticConstants: {{)",
+		type_name,
+		to_json_array(properties),
+		to_json_array(events),
+		to_json_array(sync_methods),
+		to_json_array(async_methods),
+		to_json_array(instance_constants));
 
-		constructor() {{}}
-
-		get handle() {{
-			return this.__handle;
-		}}
-	}};
-
-	window.{0} = {0};
-)", type_name);
-
+	// Add static constants
+	bool first = true;
+	for (const auto& constant : static_constants) {
+		if (!first) js += ",";
+		first = false;
+		js += std::format("\n\t\t\t\"{0}\": null", constant);
+	}
 
 	js += R"(
-})();
+		}
+	});
+
+	console.log('[WebBridge] Class registered: ')";
+	js += std::string(type_name);
+	js += R"(');
+}})();
 )";
 
 	return js;
@@ -201,81 +103,61 @@ std::string generate_js_published_object(
 	const std::vector<std::string>& instance_constants,
 	const std::vector<std::string>& static_constants)
 {
+	// Helper to format array as JSON
+	auto to_json_array = [](const std::vector<std::string>& items) -> std::string {
+		if (items.empty()) return "[]";
+		std::string result = "[";
+		for (size_t i = 0; i < items.size(); ++i) {
+			if (i > 0) result += ", ";
+			result += "\"" + items[i] + "\"";
+		}
+		result += "]";
+		return result;
+	};
+
+	// Generate only metadata - Runtime must be loaded via Vite
+	// No fallback code
 	std::string js = std::format(R"(
 (async function() {{
 	'use strict';
-	
-	const obj = new {0}.__PublishedInstance();
-	obj.__handle = "{1}";
-	
-	window.__webbridge_objects[obj.__handle] = obj;
-)", type_name, object_id);
 
+	// Runtime MUST be loaded - no fallback
+	if (!window.WebbridgeRuntime || !window.WebbridgeRuntime.createPublishedObject) {{
+		throw new Error('[WebBridge] Runtime not initialized. Make sure webbridge-runtime is imported in main.ts');
+	}}
 
-	for (const auto& prop : properties) {
-		js += std::format(R"(
-	obj.{0} = {{
-		_subscribers: new Set(),
-		subscribe(fn) {{
-			this._subscribers.add(fn);
-			__get_{1}_{0}(obj.__handle).then(fn);
-			return () => this._subscribers.delete(fn);
-		}},
-		_notify(value) {{
-			this._subscribers.forEach(fn => fn(value));
+	// Create published object using runtime
+	const obj = window.WebbridgeRuntime.createPublishedObject(
+		"{0}",
+		"{1}",
+		{{
+			properties: {2},
+			events: {3},
+			syncMethods: {4},
+			asyncMethods: {5},
+			instanceConstants: {6},
+			staticConstants: {{}}
 		}}
-	}};
-)", prop, type_name);
-	}
-
-	// Events
-	for (const auto& evt : events) {
-		js += std::format(R"(
-	obj.{0} = {{
-		_listeners: [],
-		on(fn) {{
-			this._listeners.push({{ fn, once: false }});
-			return () => this._listeners = this._listeners.filter(l => l.fn !== fn);
-		}},
-		once(fn) {{
-			this._listeners.push({{ fn, once: true }});
-		}},
-		_emit(...args) {{
-			this._listeners = this._listeners.filter(l => {{
-				l.fn(...args);
-				return !l.once;
-			}});
-		}}
-	}};
-)", evt);
-	}
+	);
+)",
+		type_name,
+		object_id,
+		to_json_array(properties),
+		to_json_array(events),
+		to_json_array(sync_methods),
+		to_json_array(async_methods),
+		to_json_array(instance_constants));
 
 	// Fetch instance constants
 	for (const auto& constant : instance_constants) {
 		js += std::format(R"(
-	obj.{0} = await __get_{1}_{0}(obj.__handle);
+	obj.{0} = await __get_{1}_{0}(obj.handle);
 )", constant, type_name);
-	}
-
-	for (const auto& method : sync_methods) {
-		js += std::format(R"(
-	obj.{0} = async function(...args) {{
-		return await __{1}_{0}(this.__handle, ...args);
-	}};
-)", method, type_name);
-	}
-
-	for (const auto& method : async_methods) {
-		js += std::format(R"(
-	obj.{0} = async function(...args) {{
-		return await __{1}_{0}(this.__handle, ...args);
-	}};
-)", method, type_name);
 	}
 
 	js += std::format(R"(
 	window.{0} = obj;
-	console.log('[WebBridge] Published "{0}" with handle:', obj.__handle);
+	console.log('[WebBridge] Published "{0}" with handle:', obj.handle);
 }})();
 )", var_name);
 
