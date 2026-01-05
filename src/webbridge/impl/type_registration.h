@@ -2,33 +2,31 @@
 
 #include <string>
 #include <vector>
+#include <utility>
 
 namespace webbridge::impl {
 
-// Returns JS code to initialize the WebBridge global registry 
-// (idempotent, only once per window).
-std::string generate_js_global_registry();
+// Static constant: name + JSON value
+using static_constant = std::pair<std::string, std::string>;
 
 // Returns JS code for a class wrapper for a C++ type.
+// Includes polling mechanism to wait for WebbridgeRuntime.
 std::string generate_js_class_wrapper(
 	std::string_view type_name,
-	const std::vector<std::string>& sync_methods,
-	const std::vector<std::string>& async_methods,
+	const std::vector<std::string>& methods,
 	const std::vector<std::string>& properties,
 	const std::vector<std::string>& events,
-	const std::vector<std::string>& instance_constants = {},
-	const std::vector<std::string>& static_constants = {});
+	const std::vector<std::string>& instance_constants,
+	const std::vector<static_constant>& static_constants);
 
 // Returns JS code to publish a C++ object instance to JS.
 std::string generate_js_published_object(
 	std::string_view type_name,
 	std::string_view var_name,
 	std::string_view object_id,
-	const std::vector<std::string>& sync_methods,
-	const std::vector<std::string>& async_methods,
+	const std::vector<std::string>& methods,
 	const std::vector<std::string>& properties,
 	const std::vector<std::string>& events,
-	const std::vector<std::string>& instance_constants = {},
-	const std::vector<std::string>& static_constants = {});
+	const std::vector<std::string>& instance_constants);
 
 } // namespace webbridge::impl

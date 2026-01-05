@@ -291,28 +291,4 @@ void bind_instance_constant_getter(
 		}, &w_ref);
 }
 
-// =============================================================================
-// Static Constant Definition
-// =============================================================================
-
-template<typename T>
-void define_static_constant(
-	webview::webview& w_ref,
-	std::string_view type_name,
-	std::string_view const_name,
-	const T& value)
-{
-	auto json_val = nlohmann::json(value).dump();
-	auto snipped = std::format(
-		R"(Object.defineProperty(window.{}, '{}', {{
-			value: {},
-			writable: false,
-			enumerable: true,
-			configurable: false
-		}});)",
-		type_name, const_name, json_val
-	); 
-	w_ref.init(snipped);
-}
-
 } // namespace webbridge::impl

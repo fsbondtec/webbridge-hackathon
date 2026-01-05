@@ -68,11 +68,9 @@ inline void setup_subscriptions(
     const std::string& object_id,
     std::shared_ptr<{{ cls.name }}> obj)
 {
-    // Properties
 {% for prop in cls.properties %}
     subscribe_property<{{ cls.name }}>(w_ref, object_id, "{{ prop.name }}", obj->{{ prop.name }});
 {% endfor %}
-    // Events
 {% for evt in cls.events %}
     subscribe_event<{{ cls.name }}>(w_ref, object_id, "{{ evt.name }}", obj->{{ evt.name }});
 {% endfor -%}
@@ -80,66 +78,18 @@ inline void setup_subscriptions(
 
 inline void bind_all(webview::webview& w_ref, object_registry& registry)
 {
-    auto start_total = std::chrono::high_resolution_clock::now();
-    
-    // Property Getters
-    {
-        auto start = std::chrono::high_resolution_clock::now();
 {% for prop in cls.properties %}
-        bind_property_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ prop.name }}", &{{ cls.name }}::{{ prop.name }});
+    bind_property_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ prop.name }}", &{{ cls.name }}::{{ prop.name }});
 {% endfor %}
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start);
-        std::cout << "[Timing] bind_all property getters: " << elapsed.count() << " ms" << std::endl;
-    }
-    
-    // Instance Constant Getters
-    {
-        auto start = std::chrono::high_resolution_clock::now();
 {% for const in cls.constants if not const.is_static %}
-        bind_instance_constant_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ const.name }}", &{{ cls.name }}::{{ const.name }});
+    bind_instance_constant_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ const.name }}", &{{ cls.name }}::{{ const.name }});
 {% endfor %}
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start);
-        std::cout << "[Timing] bind_all instance constants: " << elapsed.count() << " ms" << std::endl;
-    }
-    
-    // Static Constants
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-{% for const in cls.constants if const.is_static %}
-        define_static_constant(w_ref, "{{ cls.name }}", "{{ const.name }}", {{ cls.name }}::{{ const.name }});
-{% endfor %}
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start);
-        std::cout << "[Timing] bind_all static constants: " << elapsed.count() << " ms" << std::endl;
-    }
-    
-    // Sync Methods
-    {
-        auto start = std::chrono::high_resolution_clock::now();
 {% for method in cls.sync_methods %}
-        bind_sync_method<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
+    bind_sync_method<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
 {% endfor %}
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start);
-        std::cout << "[Timing] bind_all sync methods: " << elapsed.count() << " ms" << std::endl;
-    }
-    
-    // Async Methods
-    {
-        auto start = std::chrono::high_resolution_clock::now();
 {% for method in cls.async_methods %}
-        bind_async_method<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
+    bind_async_method<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
 {% endfor %}
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start);
-        std::cout << "[Timing] bind_all async methods: " << elapsed.count() << " ms" << std::endl;
-    }
-    
-    auto elapsed_total = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::high_resolution_clock::now() - start_total);
-    std::cout << "[Timing] bind_all total: " << elapsed_total.count() << " ms" << std::endl;
 }
 
 } // namespace impl
@@ -150,73 +100,59 @@ inline void bind_all(webview::webview& w_ref, object_registry& registry)
 
 template<>
 inline void register_type<{{ cls.name }}>(webview::webview* w) {
-    auto start_register = std::chrono::high_resolution_clock::now();
     webview::webview& w_ref = *w;
     using namespace impl;
     auto& registry = object_registry::instance();
 
-    // JS initialization
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-        w_ref.init(generate_js_global_registry());
-        w_ref.init(generate_js_class_wrapper(
-            "{{ cls.name }}",
-            {{ cls.sync_methods | json_names }},
-            {{ cls.async_methods | json_names }},
-            {{ cls.properties | json_names }},
-            {{ cls.events | json_names }},
-            {{ cls.constants | selectattr('is_static', 'false') | list | json_names }},
-            {{ cls.constants | selectattr('is_static') | list | json_names }}
-        ));
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start);
-        std::cout << "[Timing] register_type JS initialization: " << elapsed.count() << " ms" << std::endl;
-    }
+    // Collect all method names (sync + async combined)
+    std::vector<std::string> methods = {{ '{' }}{% for method in cls.sync_methods %}"{{ method.name }}"{% if not loop.last %}, {% endif %}{% endfor %}{% if cls.sync_methods and cls.async_methods %}, {% endif %}{% for method in cls.async_methods %}"{{ method.name }}"{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }};
 
-    // Object creation
-{% set ctor = cls.constructors[0] if cls.constructors else none %}
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-        w_ref.bind("__create_{{ cls.name }}", [&registry, &w_ref](const std::string& req) -> std::string {
-{% if ctor and ctor.parameters %}
-            auto args = nlohmann::json::parse(req);
-            auto obj = std::make_shared<{{ cls.name }}>(
-{% for param in ctor.parameters %}
-                args[{{ loop.index0 }}].get<{{ param[0] }}>(){% if not loop.last %},{% endif %}
+    // Static constants with JSON values
+    std::vector<static_constant> static_consts = {
+{% for const in cls.constants if const.is_static %}
+        {"{{ const.name }}", nlohmann::json({{ cls.name }}::{{ const.name }}).dump()}{% if not loop.last %},{% endif %}
 
 {% endfor %}
-            );
+    };
+
+    // JS class initialization (with polling for Runtime)
+    w_ref.init(generate_js_class_wrapper(
+        "{{ cls.name }}",
+        methods,
+        {{ cls.properties | json_names }},
+        {{ cls.events | json_names }},
+        {{ cls.constants | selectattr('is_static', 'false') | list | json_names }},
+        static_consts
+    ));
+
+    // Object creation binding
+{% set ctor = cls.constructors[0] if cls.constructors else none %}
+    w_ref.bind("__create_{{ cls.name }}", [&registry, &w_ref](const std::string& req) -> std::string {
+{% if ctor and ctor.parameters %}
+        auto args = nlohmann::json::parse(req);
+        auto obj = std::make_shared<{{ cls.name }}>(
+{% for param in ctor.parameters %}
+            args[{{ loop.index0 }}].get<{{ param[0] }}>(){% if not loop.last %},{% endif %}
+
+{% endfor %}
+        );
 {% else %}
-            auto obj = std::make_shared<{{ cls.name }}>();
+        auto obj = std::make_shared<{{ cls.name }}>();
 {% endif %}
-            auto object_id = registry.register_object(obj, "{{ cls.name }}");
-            impl::setup_subscriptions(w_ref, object_id, obj);
-            return nlohmann::json(object_id).dump();
-        });
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start);
-        std::cout << "[Timing] register_type object creation binding: " << elapsed.count() << " ms" << std::endl;
-    }
+        auto object_id = registry.register_object(obj, "{{ cls.name }}");
+        impl::setup_subscriptions(w_ref, object_id, obj);
+        return nlohmann::json(object_id).dump();
+    });
 
-    // Object destruction
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-        w_ref.bind("__webbridge_destroy", [&registry](const std::string& req) -> std::string {
-            auto args = nlohmann::json::parse(req);
-            registry.remove(extract_object_id(args));
-            return "null";
-        });
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start);
-        std::cout << "[Timing] register_type object destruction binding: " << elapsed.count() << " ms" << std::endl;
-    }
+    // Object destruction binding
+    w_ref.bind("__webbridge_destroy", [&registry](const std::string& req) -> std::string {
+        auto args = nlohmann::json::parse(req);
+        registry.remove(extract_object_id(args));
+        return "null";
+    });
 
-    // All bindings
+    // All C++ bindings (property getters, methods)
     impl::bind_all(w_ref, registry);
-    
-    auto elapsed_total = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::high_resolution_clock::now() - start_register);
-    std::cout << "[Timing] register_type total: " << elapsed_total.count() << " ms" << std::endl;
 }
 
 template<>
@@ -228,16 +164,17 @@ inline void publish_object<{{ cls.name }}>(webview::webview* w, std::string_view
 
     impl::setup_subscriptions(w_ref, object_id, obj);
 
+    // Collect all method names
+    std::vector<std::string> methods = {{ '{' }}{% for method in cls.sync_methods %}"{{ method.name }}"{% if not loop.last %}, {% endif %}{% endfor %}{% if cls.sync_methods and cls.async_methods %}, {% endif %}{% for method in cls.async_methods %}"{{ method.name }}"{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }};
+
     w_ref.init(generate_js_published_object(
         "{{ cls.name }}",
         std::string(name),
         object_id,
-        {{ cls.sync_methods | json_names }},
-        {{ cls.async_methods | json_names }},
+        methods,
         {{ cls.properties | json_names }},
         {{ cls.events | json_names }},
-        {{ cls.constants | selectattr('is_static', 'false') | list | json_names }},
-        {{ cls.constants | selectattr('is_static') | list | json_names }}
+        {{ cls.constants | selectattr('is_static', 'false') | list | json_names }}
     ));
 }
 
