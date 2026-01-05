@@ -35,7 +35,7 @@
     try {
       log('Creating object...', 'info');
 
-      //log(`Static constant appversion: ${window.MyObject.appversion}`, 'info');
+      log(`Static constant appversion: ${window.MyObject.appversion}`, 'info');
       const newObj = await window.MyObject.create('fab');
       log(`Object created: ${newObj.handle}`, 'success');
       newObj.aEvent.on((intVal, boolVal) => {
@@ -43,7 +43,8 @@
       });
 
       // Log constants (instance and static)
-      log(`Instance constant version: ${newObj.version}`, 'info');
+      log(`Instance constant aversion: ${newObj.version}`, 'info');
+      log(`Instance constant CPP_VERSION: ${window.MyObject.CPP_VERSION}`, 'info');
       log(`Static constant CPP_VERSION: ${newObj.CPP_VERSION}`, 'info');
 
       obj = newObj;
