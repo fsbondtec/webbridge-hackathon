@@ -155,27 +155,4 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
     impl::bind_all(w_ref, registry);
 }
 
-template<>
-inline void publish_object<{{ cls.name }}>(webview::webview* w, std::string_view name, std::shared_ptr<{{ cls.name }}> obj) {
-    webview::webview& w_ref = *w;
-    using namespace impl;
-    auto& registry = object_registry::instance();
-    auto object_id = registry.register_object(obj, "{{ cls.name }}");
-
-    impl::setup_subscriptions(w_ref, object_id, obj);
-
-    // Collect all method names
-    std::vector<std::string> methods = {{ '{' }}{% for method in cls.sync_methods %}"{{ method.name }}"{% if not loop.last %}, {% endif %}{% endfor %}{% if cls.sync_methods and cls.async_methods %}, {% endif %}{% for method in cls.async_methods %}"{{ method.name }}"{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }};
-
-    w_ref.init(generate_js_published_object(
-        "{{ cls.name }}",
-        std::string(name),
-        object_id,
-        methods,
-        {{ cls.properties | json_names }},
-        {{ cls.events | json_names }},
-        {{ cls.constants | selectattr('is_static', 'false') | list | json_names }}
-    ));
-}
-
 } // namespace webbridge

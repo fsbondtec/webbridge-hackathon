@@ -19,14 +19,4 @@ std::string generate_js_class_wrapper(
 	const std::vector<std::string>& instance_constants,
 	const std::vector<static_constant>& static_constants);
 
-// Returns JS code to publish a C++ object instance to JS.
-std::string generate_js_published_object(
-	std::string_view type_name,
-	std::string_view var_name,
-	std::string_view object_id,
-	const std::vector<std::string>& methods,
-	const std::vector<std::string>& properties,
-	const std::vector<std::string>& events,
-	const std::vector<std::string>& instance_constants);
-
 } // namespace webbridge::impl

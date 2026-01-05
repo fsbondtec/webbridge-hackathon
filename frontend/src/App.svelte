@@ -15,15 +15,6 @@
   $: status = obj?.status;
   $: pod = obj?.pod;
 
-  // Global published object from C++
-  let globalObj: MyObject | null = null;
-  $: globalABool = globalObj?.aBool;
-  $: globalStrProp = globalObj?.strProp;
-  $: globalCounter = globalObj?.counter;
-  $: globalNumbers = globalObj?.numbers;
-  $: globalStatus = globalObj?.status;
-  $: globalPod = globalObj?.pod;
-
   function log(msg: string, type: 'info' | 'success' | 'error' = 'info') {
     const timestamp = new Date().toLocaleTimeString();
     const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
@@ -180,18 +171,6 @@
 
   onMount(() => {
     log('WebBridge Demo initialized 🚀', 'success');
-
-    setTimeout(() => {
-      if (window.globalMyObject) {
-        globalObj = window.globalMyObject;
-        log('Found globalMyObject published from C++!', 'success');
-        globalObj.aEvent.on((intVal, boolVal) => {
-          log(`🔔 Global Event: int=${intVal}, bool=${boolVal}`, 'info');
-        });
-      } else {
-        log('No global object found yet', 'info');
-      }
-    }, 100);
   });
 </script>
 
@@ -234,45 +213,6 @@
         Clear Log
       </button>
     </div>
-
-    <!-- Global Published Object from C++ -->
-    {#if globalObj}
-      <div class="properties global-object">
-        <h2>🌍 Global Object (Published from C++)</h2>
-        <div class="property-grid">
-          <div class="property">
-            <span class="property-label">aBool:</span>
-            <span class="value">{$globalABool}</span>
-          </div>
-          <div class="property">
-            <span class="property-label">strProp:</span>
-            <span class="value">{$globalStrProp || '(empty)'}</span>
-          </div>
-          <div class="property">
-            <span class="property-label">counter:</span>
-            <span class="value">{$globalCounter}</span>
-          </div>
-          <div class="property">
-            <span class="property-label">numbers:</span>
-            <span class="value">[{$globalNumbers ? $globalNumbers.join(', ') : ''}]</span>
-          </div>
-          <div class="property">
-            <span class="property-label">status:</span>
-            <span class="value status-{$globalStatus ? $globalStatus.toLowerCase() : 'idle'}">{$globalStatus || 'Idle'}</span>
-          </div>
-          {#if $globalPod}
-          <div class="property">
-            <span class="property-label">pod:</span>
-            <span class="value">{`{ a: ${$globalPod.a}, b: ${$globalPod.b} }`}</span>
-          </div>
-          {/if}
-        </div>
-        <p class="info-text">
-          ℹ️ This object was created in C++ and automatically published to JavaScript.
-          Watch it update automatically after 2 and 4 seconds!
-        </p>
-      </div>
-    {/if}
 
     <!-- Property Display - Reactive via WebBridge Stores! -->
     <div class="properties">
@@ -416,11 +356,6 @@
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 20px;
-  }
-
-  .properties.global-object {
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-    border: 2px solid #2196f3;
   }
 
   .properties h2 {

@@ -35,17 +35,4 @@ void register_type(webview::webview* w) {
 	static_assert(sizeof(T) == 0, "register_type<T> must be specialized. Include the generated _registration.h file.");
 }
 
-/**
- * Publishes an existing C++ object under a name in JavaScript.
- * Must be specialized for each type (see generated _registration.h files).
- *
- * @param w WebView instance
- * @param name JavaScript variable name (e.g. "myGlobalObject")
- * @param obj Shared pointer to the object to publish
- */
-template<typename T>
-void publish_object(webview::webview* w, std::string_view name, std::shared_ptr<T> obj) {
-	static_assert(sizeof(T) == 0, "publish_object<T> must be specialized. Include the generated _registration.h file.");
-}
-
 }

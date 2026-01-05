@@ -204,7 +204,7 @@ console.log(MyObject.PI);   // Static constant: 3.141592654
 ```
 
 
-## Registration and Publish
+## Registration
 
 To make C++ classes available in JavaScript, they must be explicitly registered. The code generator creates the necessary binding files, which are then included in CMake. In your `main.cpp`, you must call the generated registration function:
 
@@ -215,10 +215,6 @@ To make C++ classes available in JavaScript, they must be explicitly registered.
 int main() {
     // Register the class for JavaScript
     webbridge::register_type<MyObject>();
-
-    // Optionally publish an instance to JavaScript
-    auto obj = std::make_shared<MyObject>();
-    webbridge::publish_object<MyObject>(nullptr, "myObject", obj);
 
     // ... initialize and run your webview ...
 }

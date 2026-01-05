@@ -140,31 +140,12 @@ function createClass(config: ClassConfig) {
     return factory;
 }
 
-function createPublishedObject(className: string, objectId: string, config: Omit<ClassConfig, 'className'>) {
-    const { properties, events, methods, instanceConstants } = config;
-
-    const obj: any = {
-        __id: objectId,
-        get handle() { return this.__id; }
-    };
-
-    for (const p of properties) obj[p] = createProperty(objectId, className, p);
-    for (const e of events) obj[e] = createEvent(objectId, className, e);
-    for (const m of methods) {
-        obj[m] = (...a: any[]) => (window as any)[`__${className}_${m}`](objectId, ...a);
-    }
-
-    objects[objectId] = obj;
-    return obj;
-}
-
 // =============================================================================
 // Export Runtime to window (for C++ init scripts)
 // =============================================================================
 
 (window as any).WebbridgeRuntime = {
-    createClass,
-    createPublishedObject
+    createClass
 };
 
 console.log('[WebBridge] Runtime loaded');

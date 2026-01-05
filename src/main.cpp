@@ -66,20 +66,6 @@ int WINAPI WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,
 	auto end = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 	std::cout << "register_type took " << duration.count() << " ms" << std::endl;
-		// Publish a existing object to js
-		auto globalObject = std::make_shared<MyObject>("Published from C++!");
-		globalObject->strProp = "Published from C++!";
-		globalObject->counter = 42;
-		globalObject->aBool = true;
-		webbridge::publish_object<MyObject>(&w, "globalMyObject", globalObject);
-		std::thread([globalObject]() {
-			std::this_thread::sleep_for(std::chrono::seconds(2));
-			globalObject->strProp = "Updated from C++ after 2s";
-			globalObject->counter = 100;
-			
-			std::this_thread::sleep_for(std::chrono::seconds(2));
-			globalObject->aEvent.emit(999, true);
-		}).detach();
 
 		w.navigate(server.get_url());		
 		w.run();
