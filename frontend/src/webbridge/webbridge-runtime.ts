@@ -95,12 +95,13 @@ interface ClassConfig {
     events: string[];
     methods: string[];
     instanceConstants: string[];
+    staticConstants: Record<string, any>;
 }
 
 function createClass(config: ClassConfig) {
-    const { className, properties, events, methods, instanceConstants } = config;
+    const { className, properties, events, methods, instanceConstants, staticConstants } = config;
 
-    return {
+    const factory: any = {
         async create(...args: any[]) {
             const objectId: string = await (window as any)[`__create_${className}`](...args);
 
@@ -121,11 +122,22 @@ function createClass(config: ClassConfig) {
             for (const c of instanceConstants) {
                 obj[c] = await (window as any)[`__get_${className}_${c}`](objectId);
             }
+            // Copy static constants to instance for convenience
+            for (const [key, value] of Object.entries(staticConstants)) {
+                obj[key] = value;
+            }
 
             objects[objectId] = obj;
             return obj;
         }
     };
+
+    // Assign static constants to factory (class level)
+    for (const [key, value] of Object.entries(staticConstants)) {
+        factory[key] = value;
+    }
+
+    return factory;
 }
 
 function createPublishedObject(className: string, objectId: string, config: Omit<ClassConfig, 'className'>) {

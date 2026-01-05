@@ -21,6 +21,17 @@ std::string generate_js_class_wrapper(
 		return result + "]";
 	};
 
+	// Build static constants JSON object
+	auto to_json_object = [](const std::vector<static_constant>& constants) -> std::string {
+		if (constants.empty()) return "{}";
+		std::string result = "{";
+		for (size_t i = 0; i < constants.size(); ++i) {
+			if (i > 0) result += ",";
+			result += "\"" + constants[i].first + "\":" + constants[i].second;
+		}
+		return result + "}";
+	};
+
 	// Generate JS with polling for WebbridgeRuntime
 	std::string js = std::format(R"(
 (function __webbridge_init_{0}() {{
@@ -33,24 +44,19 @@ std::string generate_js_class_wrapper(
 		properties: {1},
 		events: {2},
 		methods: {3},
-		instanceConstants: {4}
+		instanceConstants: {4},
+		staticConstants: {5}
 	}});
+	window.{0} = cls;
+	console.log('[WebBridge] Registered: {0}');
+}})();
 )",
 		type_name,
 		to_json_array(properties),
 		to_json_array(events),
 		to_json_array(methods),
-		to_json_array(instance_constants));
-
-	// Add static constants directly with values
-	for (const auto& [name, json_value] : static_constants) {
-		js += std::format("\tcls.{0} = {1};\n", name, json_value);
-	}
-
-	js += std::format(R"(	window.{0} = cls;
-	console.log('[WebBridge] Registered: {0}');
-}})();
-)", type_name);
+		to_json_array(instance_constants),
+		to_json_object(static_constants));
 
 	return js;
 }

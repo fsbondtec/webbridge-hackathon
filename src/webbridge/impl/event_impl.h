@@ -17,8 +17,8 @@ public:
 	event(event&&) = delete;
 	event& operator=(event&&) = delete;
 
-	void set_forwarder(callback callback) {
-		m_forwarder = std::move(callback);
+	void set_forwarder(callback fun) {
+		m_forwarder = std::move(fun);
 	}
 
 	void emit(Args... args) {
