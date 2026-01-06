@@ -42,7 +42,8 @@ function __webbridge_createProperty(objectId, className, propName) {
             if (loaded) {
                 callback(currentValue);
             } else {
-                window[`__get_${className}_${propName}`](objectId).then((v) => {
+                // Call consolidated sync binding: [objectId, "prop", propName]
+                window[`__${className}_sync`](objectId, "prop", propName).then((v) => {
                     currentValue = v;
                     loaded = true;
                     callback(v);
@@ -52,7 +53,8 @@ function __webbridge_createProperty(objectId, className, propName) {
         },
         async get() {
             if (!loaded) {
-                currentValue = await window[`__get_${className}_${propName}`](objectId);
+                // Call consolidated sync binding: [objectId, "prop", propName]
+                currentValue = await window[`__${className}_sync`](objectId, "prop", propName);
                 loaded = true;
             }
             return currentValue;
@@ -97,7 +99,7 @@ function __webbridge_createEvent(objectId, className, eventName) {
 // =============================================================================
 
 function __webbridge_createClass(config) {
-    const { className, properties, events, methods, instanceConstants, staticConstants } = config;
+    const { className, properties, events, syncMethods, asyncMethods, instanceConstants, staticConstants } = config;
 
     console.log(`[WebBridge] createClass: ${className}`);
 
@@ -114,14 +116,27 @@ function __webbridge_createClass(config) {
                 }
             };
 
+            // Properties via consolidated sync binding
             for (const p of properties) obj[p] = __webbridge_createProperty(objectId, className, p);
+            
+            // Events (unchanged - C++ -> JS direction)
             for (const e of events) obj[e] = __webbridge_createEvent(objectId, className, e);
-            for (const m of methods) {
-                obj[m] = (...a) => window[`__${className}_${m}`](objectId, ...a);
+            
+            // Sync methods via consolidated sync binding: [objectId, "call", methodName, ...args]
+            for (const m of syncMethods) {
+                obj[m] = (...a) => window[`__${className}_sync`](objectId, "call", m, ...a);
             }
+            
+            // Async methods via consolidated async binding: [objectId, methodName, ...args]
+            for (const m of asyncMethods) {
+                obj[m] = (...a) => window[`__${className}_async`](objectId, m, ...a);
+            }
+            
+            // Instance constants via consolidated sync binding: [objectId, "const", constName]
             for (const c of instanceConstants) {
-                obj[c] = await window[`__get_${className}_${c}`](objectId);
+                obj[c] = await window[`__${className}_sync`](objectId, "const", c);
             }
+            
             // Copy static constants to instance for convenience
             for (const [key, value] of Object.entries(staticConstants)) {
                 obj[key] = value;
@@ -177,13 +192,6 @@ std::string generate_js_class_wrapper(
 	const std::vector<std::string>& instance_constants,
 	const nlohmann::json& static_constants)
 {
-	// Combine sync and async methods for the JS interface
-	std::vector<std::string> all_methods;
-	all_methods.insert(all_methods.end(),
-		sync_methods.begin(), sync_methods.end());
-	all_methods.insert(all_methods.end(),
-		async_methods.begin(), async_methods.end());
-
 	// Runtime is already injected via init_webview, no polling needed
 	std::string js = std::format(R"(
 (function() {{
@@ -193,9 +201,10 @@ std::string generate_js_class_wrapper(
 			className: "{0}",
 			properties: {1},
 			events: {2},
-			methods: {3},
-			instanceConstants: {4},
-			staticConstants: {5}
+			syncMethods: {3},
+			asyncMethods: {4},
+			instanceConstants: {5},
+			staticConstants: {6}
 		}});
 		console.log('[Webbridge] Successfully created class: {0}');
 	}} catch (error) {{
@@ -207,7 +216,8 @@ std::string generate_js_class_wrapper(
 		type_name,
 		nlohmann::json(properties).dump(),
 		nlohmann::json(events).dump(),
-		nlohmann::json(all_methods).dump(),
+		nlohmann::json(sync_methods).dump(),
+		nlohmann::json(async_methods).dump(),
 		nlohmann::json(instance_constants).dump(),
 		static_constants.dump());
 

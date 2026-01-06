@@ -68,6 +68,7 @@ def _setup_jinja_env() -> Environment:
     # Filter registrieren
     env.filters['ts_type'] = cpp_to_ts_type
     env.filters['json_names'] = json_names
+    env.filters['qualified_type'] = lambda cls, type_name: cls.qualify_type(type_name)
 
     return env
 

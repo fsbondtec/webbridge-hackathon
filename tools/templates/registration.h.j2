@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 #include <chrono>
 #include <iostream>
+#include <thread>
 
 #include "webbridge/impl/object_registry.h"
 #include "webbridge/impl/type_registration.h"
@@ -76,20 +77,117 @@ inline void setup_subscriptions(
 {% endfor -%}
 }
 
-inline void bind_all_{{ cls.name }}(webview::webview& w_ref, object_registry& registry)
+// =============================================================================
+// Consolidated Sync Binding Handler
+// Protocol: [objectId, op, memberName, ...args]
+//   op = "prop"  -> property getter
+//   op = "const" -> instance constant getter
+//   op = "call"  -> sync method call
+// =============================================================================
+
+inline void bind_{{ cls.name }}_sync(webview::webview& w_ref, object_registry& registry)
 {
+    w_ref.bind("__{{ cls.name }}_sync",
+        [&registry](const std::string& req_id, const std::string& req, void* wPtr) {
+            auto& w_ref = *static_cast<webview::webview*>(wPtr);
+            auto args = nlohmann::json::parse(req);
+            auto object_id = args.at(0).get<std::string>();
+            auto op = args.at(1).get<std::string>();
+            auto member = args.at(2).get<std::string>();
+            auto obj = get_object_or_throw<{{ cls.name }}>(registry, object_id);
+
+            if (op == "prop") {
 {% for prop in cls.properties %}
-    bind_property_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ prop.name }}", &{{ cls.name }}::{{ prop.name }});
+                {{ "if" if loop.first else "} else if" }} (member == "{{ prop.name }}") {
+                    w_ref.resolve(req_id, 0, nlohmann::json(obj->{{ prop.name }}()).dump());
+                    return;
 {% endfor %}
+{% if cls.properties %}
+                }
+{% endif %}
+            } else if (op == "const") {
 {% for const in cls.constants if not const.is_static %}
-    bind_instance_constant_getter<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ const.name }}", &{{ cls.name }}::{{ const.name }});
+                {{ "if" if loop.first else "} else if" }} (member == "{{ const.name }}") {
+                    w_ref.resolve(req_id, 0, nlohmann::json(obj->{{ const.name }}).dump());
+                    return;
 {% endfor %}
+{% if cls.constants | selectattr('is_static', 'false') | list %}
+                }
+{% endif %}
+            } else if (op == "call") {
 {% for method in cls.sync_methods %}
-    bind_sync_method<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
+                {{ "if" if loop.first else "} else if" }} (member == "{{ method.name }}") {
+                    auto [status, json] = invoke_and_serialize([&]() {
+{% if method.parameters %}
+                        return obj->{{ method.name }}(
+{% for param in method.parameters %}
+                            args.at({{ loop.index0 + 3 }}).get<{{ cls | qualified_type(param[0]) }}>(){% if not loop.last %},{% endif %}
+
 {% endfor %}
+                        );
+{% else %}
+                        return obj->{{ method.name }}();
+{% endif %}
+                    });
+                    w_ref.resolve(req_id, status, json);
+                    return;
+{% endfor %}
+{% if cls.sync_methods %}
+                }
+{% endif %}
+            }
+            // Unknown member/op
+            w_ref.resolve(req_id, 1, R"({"error": "Unknown member or operation: )" + op + "/" + member + R"("})");
+    }, &w_ref);
+}
+
+// =============================================================================
+// Consolidated Async Binding Handler
+// Protocol: [objectId, methodName, ...args]
+// =============================================================================
+
+inline void bind_{{ cls.name }}_async(webview::webview& w_ref, object_registry& registry)
+{
+{% if cls.async_methods %}
+    w_ref.bind("__{{ cls.name }}_async",
+        [&registry, &w_ref](const std::string& req_id, const std::string& req, void* w_ptr) {
+            auto& w_ref = *static_cast<webview::webview*>(w_ptr);
+            std::thread([&registry, &w_ref, req_id, req]() {
+                auto args = nlohmann::json::parse(req);
+                auto object_id = args.at(0).get<std::string>();
+                auto method = args.at(1).get<std::string>();
+                auto obj = get_object_or_throw<{{ cls.name }}>(registry, object_id);
+
 {% for method in cls.async_methods %}
-    bind_async_method<{{ cls.name }}>(w_ref, registry, "{{ cls.name }}", "{{ method.name }}", &{{ cls.name }}::{{ method.name }});
+                {{ "if" if loop.first else "} else if" }} (method == "{{ method.name }}") {
+                    auto [status, json] = invoke_and_serialize([&]() {
+{% if method.parameters %}
+                        return obj->{{ method.name }}(
+{% for param in method.parameters %}
+                            args.at({{ loop.index0 + 2 }}).get<{{ cls | qualified_type(param[0]) }}>(){% if not loop.last %},{% endif %}
+
 {% endfor %}
+                        );
+{% else %}
+                        return obj->{{ method.name }}();
+{% endif %}
+                    });
+                    w_ref.resolve(req_id, status, json);
+                    return;
+{% endfor %}
+                }
+                // Unknown method
+                w_ref.resolve(req_id, 1, R"({"error": "Unknown async method: )" + method + R"("})");
+            }).detach();
+        }, &w_ref);
+{% else %}
+    // No async methods - bind a no-op handler
+    w_ref.bind("__{{ cls.name }}_async",
+        [](const std::string& req_id, const std::string&, void* w_ptr) {
+            auto& w_ref = *static_cast<webview::webview*>(w_ptr);
+            w_ref.resolve(req_id, 1, R"({"error": "No async methods defined"})");
+        }, &w_ref);
+{% endif %}
 }
 
 } // namespace impl
@@ -115,7 +213,7 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
     static_consts["{{ const.name }}"] = {{ cls.name }}::{{ const.name }};
 {% endfor %}
 
-    // JS class initialization (with polling for Runtime)
+    // JS class initialization
     w_ref.init(generate_js_class_wrapper(
         "{{ cls.name }}",
         {{ cls.sync_methods | json_names }},
@@ -133,7 +231,7 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
         auto args = nlohmann::json::parse(req);
         auto obj = std::make_shared<{{ cls.name }}>(
 {% for param in ctor.parameters %}
-            args[{{ loop.index0 }}].get<{{ param[0] }}>(){% if not loop.last %},{% endif %}
+            args[{{ loop.index0 }}].get<{{ cls | qualified_type(param[0]) }}>(){% if not loop.last %},{% endif %}
 
 {% endfor %}
         );
@@ -145,8 +243,9 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
         return nlohmann::json(object_id).dump();
     });
 
-    // All C++ bindings (property getters, methods)
-    impl::bind_all_{{ cls.name }}(w_ref, registry);
+    // Consolidated bindings (sync + async)
+    impl::bind_{{ cls.name }}_sync(w_ref, registry);
+    impl::bind_{{ cls.name }}_async(w_ref, registry);
 }
 
 } // namespace webbridge

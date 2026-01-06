@@ -63,6 +63,7 @@ class EnumInfo:
     name: str
     enum_values: List[str]
     is_enum_class: bool
+    is_nested: bool = True  # True if defined inside the class
 
 
 @dataclass
@@ -86,6 +87,48 @@ class ClassInfo:
     constructors: List[MethodInfo] = field(default_factory=list)
     sync_methods: List[MethodInfo] = field(default_factory=list)
     async_methods: List[MethodInfo] = field(default_factory=list)
+    
+    def is_nested_enum(self, type_name: str) -> bool:
+        """Check if a type is a nested enum of this class.
+        
+        Args:
+            type_name: The type name to check (e.g., 'Status' or 'MyObject::Status')
+            
+        Returns:
+            True if type_name matches a nested enum in this class
+        """
+        # Strip const, &, * etc.
+        clean_type = type_name.replace('const ', '').replace('&', '').replace('*', '').strip()
+        
+        # Check if it's already qualified (contains ::)
+        if '::' in clean_type:
+            return False  # Already qualified, no need to modify
+        
+        # Check if it matches any nested enum name
+        return any(enum.name == clean_type and enum.is_nested for enum in self.enums)
+    
+    def qualify_type(self, type_name: str) -> str:
+        """Qualify a type name with the class name if it's a nested enum.
+        
+        Args:
+            type_name: The type name to qualify
+            
+        Returns:
+            Qualified type name (e.g., 'Status' -> 'MyObject::Status')
+        """
+        if self.is_nested_enum(type_name):
+            clean_type = type_name.replace('const ', '').replace('&', '').replace('*', '').strip()
+            # Preserve const/ref qualifiers
+            prefix = ''
+            suffix = ''
+            if 'const ' in type_name:
+                prefix = 'const '
+            if '&' in type_name:
+                suffix = '&'
+            if '*' in type_name:
+                suffix = '*'
+            return f"{prefix}{self.name}::{clean_type}{suffix}"
+        return type_name
 
 
 # =============================================================================
