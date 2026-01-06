@@ -66,13 +66,13 @@ namespace impl {
 inline void setup_subscriptions(
     webview::webview& w_ref,
     const std::string& object_id,
-    std::shared_ptr<{{ cls.name }}> obj)
+    {{ cls.name }}* obj)
 {
 {% for prop in cls.properties %}
-    subscribe_property<{{ cls.name }}>(w_ref, object_id, "{{ prop.name }}", obj->{{ prop.name }});
+    subscribe_property(w_ref, object_id, "{{ prop.name }}", obj->{{ prop.name }});
 {% endfor %}
 {% for evt in cls.events %}
-    subscribe_event<{{ cls.name }}>(w_ref, object_id, "{{ evt.name }}", obj->{{ evt.name }});
+    subscribe_event(w_ref, object_id, "{{ evt.name }}", obj->{{ evt.name }});
 {% endfor -%}
 }
 
@@ -104,21 +104,17 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
     using namespace impl;
     auto& registry = object_registry::instance();
 
-    // Collect all method names (sync + async combined)
-    std::vector<std::string> methods = {{ '{' }}{% for method in cls.sync_methods %}"{{ method.name }}"{% if not loop.last %}, {% endif %}{% endfor %}{% if cls.sync_methods and cls.async_methods %}, {% endif %}{% for method in cls.async_methods %}"{{ method.name }}"{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }};
-
-    // Static constants with JSON values
-    std::vector<static_constant> static_consts = {
+    // Static constants as JSON object
+    nlohmann::json static_consts = nlohmann::json::object();
 {% for const in cls.constants if const.is_static %}
-        {"{{ const.name }}", nlohmann::json({{ cls.name }}::{{ const.name }}).dump()}{% if not loop.last %},{% endif %}
-
+    static_consts["{{ const.name }}"] = {{ cls.name }}::{{ const.name }};
 {% endfor %}
-    };
 
     // JS class initialization (with polling for Runtime)
     w_ref.init(generate_js_class_wrapper(
         "{{ cls.name }}",
-        methods,
+        {{ cls.sync_methods | json_names }},
+        {{ cls.async_methods | json_names }},
         {{ cls.properties | json_names }},
         {{ cls.events | json_names }},
         {{ cls.constants | selectattr('is_static', 'false') | list | json_names }},
@@ -140,7 +136,7 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
         auto obj = std::make_shared<{{ cls.name }}>();
 {% endif %}
         auto object_id = registry.register_object(obj, "{{ cls.name }}");
-        impl::setup_subscriptions(w_ref, object_id, obj);
+        impl::setup_subscriptions(w_ref, object_id, obj.get());
         return nlohmann::json(object_id).dump();
     });
 

@@ -99,7 +99,7 @@ std::tuple<Args...> extract_args(const nlohmann::json& args) {
 // Property Subscription
 // =============================================================================
 
-template<is_webbridge_object TObj, typename T>
+template<typename T>
 void subscribe_property(
 	webview::webview& w_ref,
 	const std::string& object_id,
@@ -120,7 +120,7 @@ void subscribe_property(
 // Event Subscription
 // =============================================================================
 
-template<is_webbridge_object TObj, typename... Args>
+template<typename... Args>
 void subscribe_event(
 	webview::webview& w_ref,
 	const std::string& object_id,
