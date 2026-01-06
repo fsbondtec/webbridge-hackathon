@@ -26,7 +26,7 @@
     try {
       log('Creating object...', 'info');
 
-      //log(`Static constant appversion: ${window.MyObject.appversion}`, 'info');
+      log(`Static constant appversion: ${window.MyObject.appversion}`, 'info');
       const newObj = await window.MyObject.create('fab');
       log(`Object created: ${newObj.handle}`, 'success');
       newObj.aEvent.on((intVal, boolVal) => {
@@ -169,6 +169,109 @@
     log('Log cleared', 'info');
   }
 
+  // ============ BENCHMARK FUNCTIONALITY ============
+  
+  interface BenchmarkStats {
+    min: number;
+    max: number;
+    avg: number;
+    stdev: number;
+    total: number;
+  }
+
+  function calculateStats(values: number[]): BenchmarkStats {
+    if (values.length === 0) {
+      return { min: 0, max: 0, avg: 0, stdev: 0, total: 0 };
+    }
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const total = values.reduce((a, b) => a + b, 0);
+    const avg = total / values.length;
+    
+    // Standard deviation
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / values.length;
+    const stdev = Math.sqrt(variance);
+
+    return { min, max, avg, stdev, total };
+  }
+
+  async function runBenchmark() {
+    try {
+      log('=== STARTING BENCHMARK ===', 'info');
+      
+      // Create TestObject
+      log('Creating TestObject...', 'info');
+      const testObj = await window.TestObject.create();
+      log(`TestObject created: ${testObj.handle}`, 'success');
+
+      const iterations = 1000;
+      const warmupRuns = 20;
+
+      // ===== SYNC BENCHMARK =====
+      log(`\n--- Sync Benchmark (${iterations} iterations) ---`, 'info');
+      
+      // Warmup
+      for (let i = 0; i < warmupRuns; i++) {
+        await testObj.benchmarkSync(i);
+      }
+
+      const syncTimes: number[] = [];
+      for (let i = 0; i < iterations; i++) {
+        const start = performance.now();
+        await testObj.benchmarkSync(i);
+        const elapsed = performance.now() - start;
+        syncTimes.push(elapsed);
+      }
+
+      const syncStats = calculateStats(syncTimes);
+      log(`Sync Results (${iterations}x):`, 'success');
+      log(`  Total: ${syncStats.total.toFixed(2)} ms`, 'info');
+      log(`  Avg:   ${syncStats.avg.toFixed(3)} ms (${(syncStats.avg * 1000).toFixed(1)} µs)`, 'info');
+      log(`  Min:   ${syncStats.min.toFixed(3)} ms (${(syncStats.min * 1000).toFixed(1)} µs)`, 'info');
+      log(`  Max:   ${syncStats.max.toFixed(3)} ms (${(syncStats.max * 1000).toFixed(1)} µs)`, 'info');
+      log(`  StdDev: ${syncStats.stdev.toFixed(3)} ms (${(syncStats.stdev * 1000).toFixed(1)} µs)`, 'info');
+
+      // ===== ASYNC BENCHMARK =====
+      log(`\n--- Async Benchmark (${iterations} iterations) ---`, 'info');
+      
+      // Warmup
+      for (let i = 0; i < warmupRuns; i++) {
+        await testObj.benchmarkAsync(i);
+      }
+
+      const asyncTimes: number[] = [];
+      for (let i = 0; i < iterations; i++) {
+        const start = performance.now();
+        await testObj.benchmarkAsync(i);
+        const elapsed = performance.now() - start;
+        asyncTimes.push(elapsed);
+      }
+
+      const asyncStats = calculateStats(asyncTimes);
+      log(`Async Results (${iterations}x):`, 'success');
+      log(`  Total: ${asyncStats.total.toFixed(2)} ms`, 'info');
+      log(`  Avg:   ${asyncStats.avg.toFixed(3)} ms (${(asyncStats.avg * 1000).toFixed(1)} µs)`, 'info');
+      log(`  Min:   ${asyncStats.min.toFixed(3)} ms (${(asyncStats.min * 1000).toFixed(1)} µs)`, 'info');
+      log(`  Max:   ${asyncStats.max.toFixed(3)} ms (${(asyncStats.max * 1000).toFixed(1)} µs)`, 'info');
+      log(`  StdDev: ${asyncStats.stdev.toFixed(3)} ms (${(asyncStats.stdev * 1000).toFixed(1)} µs)`, 'info');
+
+      // Comparison
+      log(`\n--- Comparison ---`, 'info');
+      log(`  Async overhead: ${(asyncStats.avg - syncStats.avg).toFixed(3)} ms (${((asyncStats.avg - syncStats.avg) * 1000).toFixed(1)} µs)`, 'info');
+      log(`  Async is ${(asyncStats.avg / syncStats.avg).toFixed(2)}x slower than Sync`, 'info');
+
+      // Cleanup
+      log('\nDestroying TestObject...', 'info');
+      testObj.destroy();
+      log('TestObject destroyed', 'success');
+      log('=== BENCHMARK COMPLETE ===', 'success');
+
+    } catch (error) {
+      log(`Benchmark failed: ${error}`, 'error');
+    }
+  }
+
   onMount(() => {
     log('WebBridge Demo initialized 🚀', 'success');
   });
@@ -211,6 +314,9 @@
       </button>
       <button on:click={clearLog}>
         Clear Log
+      </button>
+      <button on:click={runBenchmark} class="benchmark-btn">
+        🚀 Run Benchmark (TestObject)
       </button>
     </div>
 
@@ -349,6 +455,23 @@
     background: #ccc;
     cursor: not-allowed;
     transform: none;
+  }
+
+  .error-btn {
+    background: #e91e63;
+  }
+
+  .error-btn:hover:not(:disabled) {
+    background: #c2185b;
+  }
+
+  .benchmark-btn {
+    background: #ff9800;
+    font-weight: bold;
+  }
+
+  .benchmark-btn:hover {
+    background: #f57c00;
   }
 
   .properties {
