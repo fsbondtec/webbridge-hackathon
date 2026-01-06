@@ -344,7 +344,6 @@ std::string generate_js_class_wrapper(
 	// Runtime is already injected via init_webview, no polling needed
 	std::string js = std::format(R"(
 (function() {{
-	console.log('[Webbridge] Creating class: {0}');
 	try {{
 		__webbridge_createClass({{
 			className: "{0}",
@@ -355,7 +354,6 @@ std::string generate_js_class_wrapper(
 			instanceConstants: {5},
 			staticConstants: {6}
 		}});
-		console.log('[Webbridge] Successfully created class: {0}');
 	}} catch (error) {{
 		console.error('[Webbridge] Error creating class {0}:', error);
 		throw error;
