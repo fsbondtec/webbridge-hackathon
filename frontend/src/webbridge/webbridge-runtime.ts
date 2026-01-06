@@ -101,6 +101,8 @@ interface ClassConfig {
 function createClass(config: ClassConfig) {
     const { className, properties, events, methods, instanceConstants, staticConstants } = config;
 
+    console.log(`[WebBridge] createClass: ${className}`);
+
     const factory: any = {
         async create(...args: any[]) {
             const objectId: string = await (window as any)[`__create_${className}`](...args);
@@ -137,7 +139,9 @@ function createClass(config: ClassConfig) {
         factory[key] = value;
     }
 
-    return factory;
+    // Assign factory to window and log registration
+    (window as any)[className] = factory;
+    console.log(`[WebBridge] Registered: ${className}`);
 }
 
 // =============================================================================

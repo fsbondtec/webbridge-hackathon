@@ -1,7 +1,37 @@
 #include "type_registration.h"
 #include <format>
+#include <unordered_set>
+#include <chrono>
+#include <thread>
+#include <iostream>
+
+
+using namespace std::chrono_literals;
 
 namespace webbridge::impl {
+
+// Track which webviews have been initialized
+static std::unordered_set<webview::webview*> initialized_webviews;
+
+void init_webview(webview::webview* ptr, obj_deleter_fun fun) {
+	if (!ptr || initialized_webviews.count(ptr)) {
+		return;
+	}
+
+	// Bind the destroy handler
+	ptr->bind("__webbridge_destroy", [fun](const std::string& req) -> std::string {
+		auto args = nlohmann::json::parse(req);
+		auto object_id = args.at(0).get<std::string>();
+		fun(object_id);
+		return "null";
+	});
+
+	initialized_webviews.insert(ptr);
+}
+
+bool is_webview_initialized(webview::webview* ptr) {
+	return ptr && initialized_webviews.count(ptr) > 0;
+}
 
 std::string generate_js_class_wrapper(
 	std::string_view type_name,
@@ -19,23 +49,27 @@ std::string generate_js_class_wrapper(
 	all_methods.insert(all_methods.end(),
 		async_methods.begin(), async_methods.end());
 
-	// Generate JS with polling for WebbridgeRuntime
 	std::string js = std::format(R"(
 (function __webbridge_init_{0}() {{
 	if (!window.WebbridgeRuntime) {{
 		setTimeout(__webbridge_init_{0}, 5);
 		return;
 	}}
-	const cls = window.WebbridgeRuntime.createClass({{
-		className: "{0}",
-		properties: {1},
-		events: {2},
-		methods: {3},
-		instanceConstants: {4},
-		staticConstants: {5}
-	}});
-	window.{0} = cls;
-	console.log('[WebBridge] Registered: {0}');
+	console.log('[Webbridge] Start creating class: {0}');
+	try {{
+		window.WebbridgeRuntime.createClass({{
+			className: "{0}",
+			properties: {1},
+			events: {2},
+			methods: {3},
+			instanceConstants: {4},
+			staticConstants: {5}
+		}});
+		console.log('[Webbridge] Successfully created class: {0}');
+	}} catch (error) {{
+		console.error('[Webbridge] Error creating class {0}:', error);
+		throw error;
+	}}
 }})();
 )",
 		type_name,

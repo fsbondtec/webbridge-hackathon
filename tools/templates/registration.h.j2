@@ -104,6 +104,11 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
     using namespace impl;
     auto& registry = object_registry::instance();
 
+    // Initialize webview (once per webview instance)
+    init_webview(w, [&registry](const std::string& object_id) {
+        registry.remove(object_id);
+    });
+
     // Static constants as JSON object
     nlohmann::json static_consts = nlohmann::json::object();
 {% for const in cls.constants if const.is_static %}
@@ -138,13 +143,6 @@ inline void register_type<{{ cls.name }}>(webview::webview* w) {
         auto object_id = registry.register_object(obj, "{{ cls.name }}");
         impl::setup_subscriptions(w_ref, object_id, obj.get());
         return nlohmann::json(object_id).dump();
-    });
-
-    // Object destruction binding
-    w_ref.bind("__webbridge_destroy", [&registry](const std::string& req) -> std::string {
-        auto args = nlohmann::json::parse(req);
-        registry.remove(extract_object_id(args));
-        return "null";
     });
 
     // All C++ bindings (property getters, methods)
