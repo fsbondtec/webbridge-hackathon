@@ -11,91 +11,145 @@ static std::unordered_set<webview::webview*> initialized_webviews;
 // JavaScript runtime code - injected directly into webview
 static constexpr const char* WEBBRIDGE_RUNTIME_JS = R"JS(
 // WebBridge Runtime - Injected from C++
+// V8-Optimized: Monomorphic shapes, cached lookups, inline-friendly
 
 // Object registry: objectId -> object instance
 const __webbridge_objects = {};
+
+// Cache for sync/async function lookups (avoid template string construction)
+const __webbridge_class_bindings = {};
 
 // =============================================================================
 // C++ -> JS Handlers (called by C++ via webview eval)
 // =============================================================================
 
 window.__webbridge_notify = (objectId, propName, value) => {
-    __webbridge_objects[objectId]?.[propName]?._notify?.(value);
+    const obj = __webbridge_objects[objectId];
+    if (obj) {
+        const prop = obj[propName];
+        if (prop && prop._notify) {
+            prop._notify(value);
+        }
+    }
 };
 
 window.__webbridge_emit = (objectId, eventName, ...args) => {
-    __webbridge_objects[objectId]?.[eventName]?._dispatch?.(...args);
+    const obj = __webbridge_objects[objectId];
+    if (obj) {
+        const evt = obj[eventName];
+        if (evt && evt._dispatch) {
+            evt._dispatch(...args);
+        }
+    }
 };
 
 // =============================================================================
-// Property: Svelte-compatible store
+// Property: Svelte-compatible store (V8-optimized)
 // =============================================================================
 
-function __webbridge_createProperty(objectId, className, propName) {
-    const subscribers = new Set();
-    let currentValue;
-    let loaded = false;
+// Pre-define shape for monomorphic property objects
+class PropertyStore {
+    constructor(objectId, syncFn, propName) {
+        this.objectId = objectId;
+        this.syncFn = syncFn;
+        this.propName = propName;
+        this.subscribers = new Set();
+        this.currentValue = undefined;
+        this.loaded = false;
+    }
 
-    return {
-        subscribe(callback) {
-            subscribers.add(callback);
-            if (loaded) {
-                callback(currentValue);
-            } else {
-                // Call consolidated sync binding: [objectId, "prop", propName]
-                window[`__${className}_sync`](objectId, "prop", propName).then((v) => {
-                    currentValue = v;
-                    loaded = true;
-                    callback(v);
-                });
-            }
-            return () => subscribers.delete(callback);
-        },
-        async get() {
-            if (!loaded) {
-                // Call consolidated sync binding: [objectId, "prop", propName]
-                currentValue = await window[`__${className}_sync`](objectId, "prop", propName);
-                loaded = true;
-            }
-            return currentValue;
-        },
-        _notify(value) {
-            currentValue = value;
-            loaded = true;
-            subscribers.forEach(fn => fn(value));
+    subscribe(callback) {
+        this.subscribers.add(callback);
+        if (this.loaded) {
+            callback(this.currentValue);
+        } else {
+            // Use cached sync function reference
+            this.syncFn(this.objectId, "prop", this.propName).then((v) => {
+                this.currentValue = v;
+                this.loaded = true;
+                callback(v);
+            });
         }
-    };
+        // Return unsubscribe function
+        const subscribers = this.subscribers;
+        return () => { subscribers.delete(callback); };
+    }
+
+    async get() {
+        if (!this.loaded) {
+            this.currentValue = await this.syncFn(this.objectId, "prop", this.propName);
+            this.loaded = true;
+        }
+        return this.currentValue;
+    }
+
+    _notify(value) {
+        this.currentValue = value;
+        this.loaded = true;
+        // Use for-of for better V8 optimization
+        for (const fn of this.subscribers) {
+            fn(value);
+        }
+    }
+}
+
+function __webbridge_createProperty(objectId, syncFn, propName) {
+    return new PropertyStore(objectId, syncFn, propName);
 }
 
 // =============================================================================
-// Event: on/once pattern
+// Event: on/once pattern (V8-optimized)
 // =============================================================================
 
-function __webbridge_createEvent(objectId, className, eventName) {
-    const listeners = [];
+// Pre-define shape for listener objects (monomorphic)
+class EventListener {
+    constructor(fn, once) {
+        this.fn = fn;
+        this.once = once;
+    }
+}
 
-    return {
-        on(callback) {
-            listeners.push({ fn: callback, once: false });
-            return () => {
-                const idx = listeners.findIndex(l => l.fn === callback);
-                if (idx !== -1) listeners.splice(idx, 1);
-            };
-        },
-        once(callback) {
-            listeners.push({ fn: callback, once: true });
-        },
-        _dispatch(...args) {
-            for (let i = listeners.length - 1; i >= 0; i--) {
-                listeners[i].fn(...args);
-                if (listeners[i].once) listeners.splice(i, 1);
+class EventEmitter {
+    constructor() {
+        this.listeners = [];
+    }
+
+    on(callback) {
+        const listener = new EventListener(callback, false);
+        this.listeners.push(listener);
+        // Return unsubscribe function
+        const listeners = this.listeners;
+        return () => {
+            const idx = listeners.indexOf(listener);
+            if (idx !== -1) {
+                listeners.splice(idx, 1);
+            }
+        };
+    }
+
+    once(callback) {
+        this.listeners.push(new EventListener(callback, true));
+    }
+
+    _dispatch(...args) {
+        // Iterate backwards to safely remove one-time listeners
+        const listeners = this.listeners;
+        for (let i = listeners.length - 1; i >= 0; i--) {
+            const listener = listeners[i];
+            listener.fn(...args);
+            if (listener.once) {
+                listeners.splice(i, 1);
             }
         }
-    };
+    }
+}
+
+function __webbridge_createEvent() {
+    return new EventEmitter();
 }
 
 // =============================================================================
-// Class Factory
+// Class Factory (V8-optimized)
 // =============================================================================
 
 function __webbridge_createClass(config) {
@@ -103,44 +157,137 @@ function __webbridge_createClass(config) {
 
     console.log(`[WebBridge] createClass: ${className}`);
 
+    // Cache binding function references (avoid template string lookups in hot path)
+    const createFn = window['__create_' + className];
+    const syncFn = window['__' + className + '_sync'];
+    const asyncFn = window['__' + className + '_async'];
+    const destroyFn = window.__webbridge_destroy;
+    
+    // Store in cache for property creation
+    __webbridge_class_bindings[className] = { syncFn, asyncFn };
+
+    // Pre-build method wrappers (monomorphic call sites)
+    const syncMethodWrappers = {};
+    for (let i = 0; i < syncMethods.length; i++) {
+        const methodName = syncMethods[i];
+        syncMethodWrappers[methodName] = function(...args) {
+            return syncFn(this.__id, "call", methodName, ...args);
+        };
+    }
+
+    const asyncMethodWrappers = {};
+    for (let i = 0; i < asyncMethods.length; i++) {
+        const methodName = asyncMethods[i];
+        asyncMethodWrappers[methodName] = function(...args) {
+            return asyncFn(this.__id, methodName, ...args);
+        };
+    }
+
     const factory = {
         async create(...args) {
-            const objectId = await window[`__create_${className}`](...args);
+            const objectId = await createFn(...args);
 
-            const obj = {
-                __id: objectId,
-                get handle() { return this.__id; },
-                destroy() {
-                    delete __webbridge_objects[objectId];
-                    window.__webbridge_destroy?.(objectId);
+            // Build property descriptors for all members at once
+            // V8 optimization: Define entire object shape in one operation
+            const descriptors = {
+                __id: {
+                    value: objectId,
+                    writable: false,
+                    enumerable: false,
+                    configurable: false
+                },
+                __className: {
+                    value: className,
+                    writable: false,
+                    enumerable: false,
+                    configurable: false
+                },
+                handle: {
+                    get() { return this.__id; },
+                    enumerable: false,
+                    configurable: false
+                },
+                destroy: {
+                    value: function() {
+                        delete __webbridge_objects[this.__id];
+                        if (destroyFn) destroyFn(this.__id);
+                    },
+                    writable: false,
+                    enumerable: true,
+                    configurable: false
                 }
             };
 
-            // Properties via consolidated sync binding
-            for (const p of properties) obj[p] = __webbridge_createProperty(objectId, className, p);
-            
-            // Events (unchanged - C++ -> JS direction)
-            for (const e of events) obj[e] = __webbridge_createEvent(objectId, className, e);
-            
-            // Sync methods via consolidated sync binding: [objectId, "call", methodName, ...args]
-            for (const m of syncMethods) {
-                obj[m] = (...a) => window[`__${className}_sync`](objectId, "call", m, ...a);
+            // Add all properties
+            for (let i = 0; i < properties.length; i++) {
+                const propName = properties[i];
+                descriptors[propName] = {
+                    value: __webbridge_createProperty(objectId, syncFn, propName),
+                    writable: false,
+                    enumerable: true,
+                    configurable: false
+                };
             }
             
-            // Async methods via consolidated async binding: [objectId, methodName, ...args]
-            for (const m of asyncMethods) {
-                obj[m] = (...a) => window[`__${className}_async`](objectId, m, ...a);
+            // Add all events
+            for (let i = 0; i < events.length; i++) {
+                descriptors[events[i]] = {
+                    value: __webbridge_createEvent(),
+                    writable: false,
+                    enumerable: true,
+                    configurable: false
+                };
             }
             
-            // Instance constants via consolidated sync binding: [objectId, "const", constName]
-            for (const c of instanceConstants) {
-                obj[c] = await window[`__${className}_sync`](objectId, "const", c);
+            // Add all sync methods
+            for (let i = 0; i < syncMethods.length; i++) {
+                const methodName = syncMethods[i];
+                descriptors[methodName] = {
+                    value: syncMethodWrappers[methodName],
+                    writable: false,
+                    enumerable: true,
+                    configurable: false
+                };
             }
             
-            // Copy static constants to instance for convenience
-            for (const [key, value] of Object.entries(staticConstants)) {
-                obj[key] = value;
+            // Add all async methods
+            for (let i = 0; i < asyncMethods.length; i++) {
+                const methodName = asyncMethods[i];
+                descriptors[methodName] = {
+                    value: asyncMethodWrappers[methodName],
+                    writable: false,
+                    enumerable: true,
+                    configurable: false
+                };
             }
+            
+            // Add all instance constants (await first, then add to descriptors)
+            for (let i = 0; i < instanceConstants.length; i++) {
+                const constName = instanceConstants[i];
+                const constValue = await syncFn(objectId, "const", constName);
+                descriptors[constName] = {
+                    value: constValue,
+                    writable: false,
+                    enumerable: true,
+                    configurable: false
+                };
+            }
+            
+            // Add all static constants
+            const staticKeys = Object.keys(staticConstants);
+            for (let i = 0; i < staticKeys.length; i++) {
+                const key = staticKeys[i];
+                descriptors[key] = {
+                    value: staticConstants[key],
+                    writable: false,
+                    enumerable: true,
+                    configurable: false
+                };
+            }
+
+            // Create object with all properties defined at once
+            // V8 can now optimize the entire shape immediately
+            const obj = Object.create(Object.prototype, descriptors);
 
             __webbridge_objects[objectId] = obj;
             return obj;
@@ -148,8 +295,10 @@ function __webbridge_createClass(config) {
     };
 
     // Assign static constants to factory (class level)
-    for (const [key, value] of Object.entries(staticConstants)) {
-        factory[key] = value;
+    const staticKeys = Object.keys(staticConstants);
+    for (let i = 0; i < staticKeys.length; i++) {
+        const key = staticKeys[i];
+        factory[key] = staticConstants[key];
     }
 
     // Assign factory to window
