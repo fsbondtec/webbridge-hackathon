@@ -12,20 +12,12 @@ std::string generate_js_class_wrapper(
 	const std::vector<std::string>& instance_constants,
 	const nlohmann::json& static_constants)
 {
-	auto to_json_array = [](const std::vector<std::string>& items) -> std::string {
-		if (items.empty()) return "[]";
-		std::string result = "[";
-		for (size_t i = 0; i < items.size(); ++i) {
-			if (i > 0) result += ",";
-			result += "\"" + items[i] + "\"";
-		}
-		return result + "]";
-	};
-
 	// Combine sync and async methods for the JS interface
 	std::vector<std::string> all_methods;
-	all_methods.insert(all_methods.end(), sync_methods.begin(), sync_methods.end());
-	all_methods.insert(all_methods.end(), async_methods.begin(), async_methods.end());
+	all_methods.insert(all_methods.end(),
+		sync_methods.begin(), sync_methods.end());
+	all_methods.insert(all_methods.end(),
+		async_methods.begin(), async_methods.end());
 
 	// Generate JS with polling for WebbridgeRuntime
 	std::string js = std::format(R"(
@@ -47,10 +39,10 @@ std::string generate_js_class_wrapper(
 }})();
 )",
 		type_name,
-		to_json_array(properties),
-		to_json_array(events),
-		to_json_array(all_methods),
-		to_json_array(instance_constants),
+		nlohmann::json(properties).dump(),
+		nlohmann::json(events).dump(),
+		nlohmann::json(all_methods).dump(),
+		nlohmann::json(instance_constants).dump(),
 		static_constants.dump());
 
 	return js;
