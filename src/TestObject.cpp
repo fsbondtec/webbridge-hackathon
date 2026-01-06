@@ -15,3 +15,8 @@ int TestObject::syncCalculate(int value)
 {
     return value * 2 + 10;
 }
+
+int TestObject::benchmarkAsync(int x)
+{
+    return x + 1;
+}

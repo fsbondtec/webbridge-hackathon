@@ -20,4 +20,10 @@ public:
 
     // Sync Methode
     int syncCalculate(int value);
+
+    // Benchmark: Minimale Sync-Methode (triviale Rechnung)
+    int benchmarkSync(int x) { return x + 1; }
+
+    // Benchmark: Minimale Async-Methode (triviale Rechnung)
+    [[async]] int benchmarkAsync(int x);
 };
