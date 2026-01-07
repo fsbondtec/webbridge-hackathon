@@ -171,7 +171,7 @@ function(webbridge_generate)
 		DEPENDS
 			${CMAKE_SOURCE_DIR}/tools/generate.py
 				${CMAKE_SOURCE_DIR}/tools/parser.py
-				${CMAKE_SOURCE_DIR}/tools/typescript_types.py
+				${CMAKE_SOURCE_DIR}/tools/tstypes.py
 				${template_file}
 				${file}
 			COMMENT "Running webbridge registration on ${file} (${class_name}) for ${arg_LANGUAGE}"

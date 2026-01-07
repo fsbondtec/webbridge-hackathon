@@ -4,12 +4,10 @@
         {
             "label": "Build Debug",
             "type": "shell",
-            "command": "cmake",
+            "command": "cmd",
             "args": [
-                "--build",
-                "build",
-                "--config",
-                "Debug"
+                "/c",
+                "build\\generators\\conanbuild.bat && cmake --build build --config Debug"
             ],
             "group": {
                 "kind": "build",
@@ -23,12 +21,10 @@
         {
             "label": "Build Release",
             "type": "shell",
-            "command": "cmake",
+            "command": "cmd",
             "args": [
-                "--build",
-                "build",
-                "--config",
-                "Release"
+                "/c",
+                "build\\generators\\conanbuild.bat && cmake --build build --config Release"
             ],
             "group": "build",
             "problemMatcher": "$msCompile",
@@ -49,10 +45,10 @@
         {
             "label": "Build Frontend",
             "type": "shell",
-            "command": "npm",
+            "command": "cmd",
             "args": [
-                "run",
-                "build"
+                "/c",
+                "npm install && npm run build"
             ],
             "options": {
                 "cwd": "${workspaceFolder}/frontend"

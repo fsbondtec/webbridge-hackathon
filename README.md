@@ -9,12 +9,13 @@ C++ objects are seamlessly integrated into modern web applications as an alterna
 
 ### Prerequisites
 
-- **Visual Studio 2022** with C++ Desktop Development
+- **Visual Studio 2022** with C++ Desktop Development (MSVC compiler)
 - **Conan 2** (`pip install conan`)
 - **CMake 3.26+**
 - **Anaconda3** or Miniconda
 - **Node.js** (for frontend build)
 - **Microsoft Edge WebView2 Runtime** (usually preinstalled on Windows 10/11)
+- **Ninja** (included in conda environment)
 
 ### Setup
 
@@ -33,20 +34,21 @@ conda env update --file environment.yml --name webbridge_hackathon --prune
 The `configure.bat` script will:
 - Activate the Conda environment
 - Install C++ dependencies via Conan (fmt, nlohmann_json, httplib, portable-file-dialogs, etc.)
-- Generate CMake build configuration for all build types (Debug, Release, RelWithDebInfo, MinSizeRel)
+- Initialize MSVC environment for Ninja
+- Generate CMake build configuration with Ninja Multi-Config for all build types (Debug, Release, RelWithDebInfo, MinSizeRel)
 
 ```bash
 configure.bat
 ```
 
-Then open the Visual Studio solution:
+Then build with Ninja:
 
 ```bash
-# Open in Visual Studio:
-start build\webbridge_hackathon.sln
+# With MSVC environment (required for Ninja):
+cmd /c "build\generators\conanbuild.bat && cmake --build build --config Release"
+cmd /c "build\generators\conanbuild.bat && cmake --build build --config Debug"
 
-# Or build directly:
-cmake --build build --config Release
+# Or use VS Code tasks (Ctrl+Shift+B) - these load the environment automatically
 ```
 
 **3. Build the frontend**

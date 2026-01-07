@@ -51,6 +51,9 @@ if ERRORLEVEL 1 (
     GOTO END
 )
 
+:: Use Conan's generated environment
+CALL build\generators\conanbuild.bat
+
 cmake --preset conan-default
 
 CALL conda deactivate

@@ -1,10 +1,16 @@
 from conan import ConanFile
-from conan.tools.cmake import cmake_layout
+from conan.tools.cmake import cmake_layout, CMakeToolchain
 
 
 class UsgHostRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeToolchain", "CMakeDeps"
+    generators = "CMakeDeps"
+
+    def generate(self):
+        # Configure CMakeToolchain for Ninja Multi-Config
+        tc = CMakeToolchain(self)
+        tc.generator = "Ninja Multi-Config"
+        tc.generate()
 
     def requirements(self):
         self.requires("fmt/11.0.2")
