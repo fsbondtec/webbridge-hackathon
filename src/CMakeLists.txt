@@ -72,6 +72,8 @@ set(webbridge_hackathon_WebBridge_SOURCES
 	webbridge/impl/event_impl.h
 	webbridge/impl/object_registry.h
 	webbridge/impl/property_impl.h
+	webbridge/impl/thread_pool.h
+	webbridge/impl/thread_pool.cpp
 	webbridge/impl/type_registration.h
 	webbridge/impl/type_registration.cpp
 
