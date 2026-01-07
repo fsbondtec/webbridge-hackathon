@@ -358,43 +358,31 @@ void init_webview(webview::webview* ptr, obj_deleter_fun fun) {
 	// 2. Universal SYNC dispatcher
 	ptr->bind("__webbridge_sync",
 		[&registry, &dispatcher, ptr](const std::string& req_id, const std::string& req, void*) {
-			try {
-				auto args = nlohmann::json::parse(req);
-				auto class_name = args.at(0).get<std::string>();
-				auto object_id = args.at(1).get<std::string>();
-				auto operation = args.at(2).get<std::string>();
-				auto member = args.at(3).get<std::string>();
-				
-				const auto& handler = dispatcher.get_handler(class_name);
-				handler.sync(*ptr, registry, req_id, object_id, operation, member, args);
-			} catch (const std::exception& e) {
-				ptr->resolve(req_id, 1, nlohmann::json{{"error", e.what()}}.dump());
-			}
+            auto args = nlohmann::json::parse(req);
+            auto class_name = args.at(0).get<std::string>();
+            auto object_id = args.at(1).get<std::string>();
+            auto operation = args.at(2).get<std::string>();
+            auto member = args.at(3).get<std::string>();
+            
+            const auto& handler = dispatcher.get_handler(class_name);
+            handler.sync(*ptr, registry, req_id, object_id, operation, member, args);
 		}, nullptr);
 
 	// 3. Universal ASYNC dispatcher (uses thread pool instead of std::thread)
 	ptr->bind("__webbridge_async",
 		[&registry, &dispatcher, ptr](const std::string& req_id, const std::string& req, void*) {
-			try {
-				auto args = nlohmann::json::parse(req);
-				auto class_name = args.at(0).get<std::string>();
-				auto object_id = args.at(1).get<std::string>();
-				auto method = args.at(2).get<std::string>();
-				
-				const auto& handler = dispatcher.get_handler(class_name);
-				
-				// Submit to thread pool instead of creating new thread each time
-				// This saves ~50-100µs per async call!
-				get_thread_pool().submit([handler, ptr, &registry, req_id, object_id, method, args]() {
-					try {
-						handler.async(*ptr, registry, req_id, object_id, method, args);
-					} catch (const std::exception& e) {
-						ptr->resolve(req_id, 1, nlohmann::json{{"error", e.what()}}.dump());
-					}
-				});
-			} catch (const std::exception& e) {
-				ptr->resolve(req_id, 1, nlohmann::json{{"error", e.what()}}.dump());
-			}
+            auto args = nlohmann::json::parse(req);
+            auto class_name = args.at(0).get<std::string>();
+            auto object_id = args.at(1).get<std::string>();
+            auto method = args.at(2).get<std::string>();
+            
+            const auto& handler = dispatcher.get_handler(class_name);
+            
+            // Submit to thread pool instead of creating new thread each time
+            // This saves ~50-100µs per async call!
+            get_thread_pool().submit([handler, ptr, &registry, req_id, object_id, method, args]() {
+                handler.async(*ptr, registry, req_id, object_id, method, args);
+            });
 		}, nullptr);
 
 	// 4. Universal DESTROY dispatcher
