@@ -1,7 +1,9 @@
 #include "type_registration.h"
+#include "object_registry.h"
 #include <format>
 #include <unordered_set>
 #include <iostream>
+#include <thread>
 
 namespace webbridge::impl {
 
@@ -9,15 +11,27 @@ namespace webbridge::impl {
 static std::unordered_set<webview::webview*> initialized_webviews;
 
 // JavaScript runtime code - injected directly into webview
+// OPTIMIZED: Uses universal dispatcher functions instead of per-class bindings
 static constexpr const char* WEBBRIDGE_RUNTIME_JS = R"JS(
 // WebBridge Runtime - Injected from C++
 // V8-Optimized: Monomorphic shapes, cached lookups, inline-friendly
+// DISPATCHER VERSION: Uses 4 universal bindings instead of 3*N per class
 
 // Object registry: objectId -> object instance
 const __webbridge_objects = {};
 
-// Cache for sync/async function lookups (avoid template string construction)
-const __webbridge_class_bindings = {};
+// Class metadata registry: className -> config
+const __webbridge_class_configs = {};
+
+// =============================================================================
+// Universal Dispatcher Functions (bound once, used by all classes)
+// =============================================================================
+
+// These are bound by C++ init_webview() - called for ALL classes
+// window.__webbridge_create(className, ...args) -> objectId
+// window.__webbridge_sync(className, objectId, op, member, ...args) -> result
+// window.__webbridge_async(className, objectId, method, ...args) -> Promise
+// window.__webbridge_destroy(objectId) -> void
 
 // =============================================================================
 // C++ -> JS Handlers (called by C++ via webview eval)
@@ -47,11 +61,10 @@ window.__webbridge_emit = (objectId, eventName, ...args) => {
 // Property: Svelte-compatible store (V8-optimized)
 // =============================================================================
 
-// Pre-define shape for monomorphic property objects
 class PropertyStore {
-    constructor(objectId, syncFn, propName) {
+    constructor(objectId, className, propName) {
         this.objectId = objectId;
-        this.syncFn = syncFn;
+        this.className = className;
         this.propName = propName;
         this.subscribers = new Set();
         this.currentValue = undefined;
@@ -63,21 +76,20 @@ class PropertyStore {
         if (this.loaded) {
             callback(this.currentValue);
         } else {
-            // Use cached sync function reference
-            this.syncFn(this.objectId, "prop", this.propName).then((v) => {
+            // Use universal sync dispatcher
+            window.__webbridge_sync(this.className, this.objectId, "prop", this.propName).then((v) => {
                 this.currentValue = v;
                 this.loaded = true;
                 callback(v);
             });
         }
-        // Return unsubscribe function
         const subscribers = this.subscribers;
         return () => { subscribers.delete(callback); };
     }
 
     async get() {
         if (!this.loaded) {
-            this.currentValue = await this.syncFn(this.objectId, "prop", this.propName);
+            this.currentValue = await window.__webbridge_sync(this.className, this.objectId, "prop", this.propName);
             this.loaded = true;
         }
         return this.currentValue;
@@ -86,22 +98,20 @@ class PropertyStore {
     _notify(value) {
         this.currentValue = value;
         this.loaded = true;
-        // Use for-of for better V8 optimization
         for (const fn of this.subscribers) {
             fn(value);
         }
     }
 }
 
-function __webbridge_createProperty(objectId, syncFn, propName) {
-    return new PropertyStore(objectId, syncFn, propName);
+function __webbridge_createProperty(objectId, className, propName) {
+    return new PropertyStore(objectId, className, propName);
 }
 
 // =============================================================================
 // Event: on/once pattern (V8-optimized)
 // =============================================================================
 
-// Pre-define shape for listener objects (monomorphic)
 class EventListener {
     constructor(fn, once) {
         this.fn = fn;
@@ -117,7 +127,6 @@ class EventEmitter {
     on(callback) {
         const listener = new EventListener(callback, false);
         this.listeners.push(listener);
-        // Return unsubscribe function
         const listeners = this.listeners;
         return () => {
             const idx = listeners.indexOf(listener);
@@ -132,7 +141,6 @@ class EventEmitter {
     }
 
     _dispatch(...args) {
-        // Iterate backwards to safely remove one-time listeners
         const listeners = this.listeners;
         for (let i = listeners.length - 1; i >= 0; i--) {
             const listener = listeners[i];
@@ -149,7 +157,7 @@ function __webbridge_createEvent() {
 }
 
 // =============================================================================
-// Class Factory (V8-optimized v2 - parallel instanceConstants fetch)
+// Class Factory (V8-optimized - uses universal dispatchers)
 // =============================================================================
 
 function __webbridge_createClass(config) {
@@ -157,41 +165,8 @@ function __webbridge_createClass(config) {
 
     console.log(`[WebBridge] createClass: ${className}`);
 
-    // Pre-compute function names as strings (avoid runtime concatenation in lookups)
-    const createFnName = '__create_' + className;
-    const syncFnName = '__' + className + '_sync';
-    const asyncFnName = '__' + className + '_async';
-    
-    // Cache binding function references
-    const createFn = window[createFnName];
-    const syncFn = window[syncFnName];
-    const asyncFn = window[asyncFnName];
-    const destroyFn = window.__webbridge_destroy;
-    
-    // Validate bindings exist
-    if (!createFn || !syncFn) {
-        throw new Error(`[WebBridge] Missing bindings for ${className}`);
-    }
-    
-    // Store in cache for property creation
-    __webbridge_class_bindings[className] = { syncFn, asyncFn };
-
-    // Pre-build method wrappers (monomorphic call sites)
-    const syncMethodWrappers = {};
-    for (let i = 0; i < syncMethods.length; i++) {
-        const methodName = syncMethods[i];
-        syncMethodWrappers[methodName] = function(...args) {
-            return syncFn(this.__id, "call", methodName, ...args);
-        };
-    }
-
-    const asyncMethodWrappers = {};
-    for (let i = 0; i < asyncMethods.length; i++) {
-        const methodName = asyncMethods[i];
-        asyncMethodWrappers[methodName] = function(...args) {
-            return asyncFn(this.__id, methodName, ...args);
-        };
-    }
+    // Store config for later reference
+    __webbridge_class_configs[className] = config;
 
     // Pre-compute counts
     const propCount = properties.length;
@@ -202,12 +177,30 @@ function __webbridge_createClass(config) {
     const staticKeys = Object.keys(staticConstants);
     const staticCount = staticKeys.length;
 
+    // Pre-build sync method wrappers using universal dispatcher
+    const syncMethodWrappers = {};
+    for (let i = 0; i < syncMethodCount; i++) {
+        const methodName = syncMethods[i];
+        syncMethodWrappers[methodName] = function(...args) {
+            return window.__webbridge_sync(className, this.__id, "call", methodName, ...args);
+        };
+    }
+
+    // Pre-build async method wrappers using universal dispatcher
+    const asyncMethodWrappers = {};
+    for (let i = 0; i < asyncMethodCount; i++) {
+        const methodName = asyncMethods[i];
+        asyncMethodWrappers[methodName] = function(...args) {
+            return window.__webbridge_async(className, this.__id, methodName, ...args);
+        };
+    }
+
     const factory = {
         async create(...args) {
-            const objectId = await createFn(...args);
+            // Use universal create dispatcher
+            const objectId = await window.__webbridge_create(className, ...args);
 
             // Build property descriptors for all members at once
-            // V8 optimization: Define entire object shape in one operation
             const descriptors = {
                 __id: {
                     value: objectId,
@@ -229,7 +222,7 @@ function __webbridge_createClass(config) {
                 destroy: {
                     value: function() {
                         delete __webbridge_objects[this.__id];
-                        if (destroyFn) destroyFn(this.__id);
+                        window.__webbridge_destroy(this.__id);
                     },
                     writable: false,
                     enumerable: true,
@@ -241,7 +234,7 @@ function __webbridge_createClass(config) {
             for (let i = 0; i < propCount; i++) {
                 const propName = properties[i];
                 descriptors[propName] = {
-                    value: __webbridge_createProperty(objectId, syncFn, propName),
+                    value: __webbridge_createProperty(objectId, className, propName),
                     writable: false,
                     enumerable: true,
                     configurable: false
@@ -280,11 +273,11 @@ function __webbridge_createClass(config) {
                 };
             }
             
-            // OPTIMIZATION: Fetch all instance constants in parallel with Promise.all
+            // Fetch all instance constants in parallel
             if (instanceConstCount > 0) {
                 const constPromises = new Array(instanceConstCount);
                 for (let i = 0; i < instanceConstCount; i++) {
-                    constPromises[i] = syncFn(objectId, "const", instanceConstants[i]);
+                    constPromises[i] = window.__webbridge_sync(className, objectId, "const", instanceConstants[i]);
                 }
                 const constValues = await Promise.all(constPromises);
                 for (let i = 0; i < instanceConstCount; i++) {
@@ -308,27 +301,22 @@ function __webbridge_createClass(config) {
                 };
             }
 
-            // Create object with all properties defined at once
-            // V8 can now optimize the entire shape immediately
             const obj = Object.create(Object.prototype, descriptors);
-
             __webbridge_objects[objectId] = obj;
             return obj;
         }
     };
 
-    // Assign static constants to factory (class level)
+    // Assign static constants to factory
     for (let i = 0; i < staticCount; i++) {
         const key = staticKeys[i];
         factory[key] = staticConstants[key];
     }
 
-    // Assign factory to window
     window[className] = factory;
-    console.log(`[WebBridge] Registered: ${className}`);
 }
 
-console.log('[WebBridge] Runtime loaded');
+console.log('[WebBridge] Runtime loaded (Dispatcher Version)');
 )JS";
 
 void init_webview(webview::webview* ptr, obj_deleter_fun fun) {
@@ -336,10 +324,79 @@ void init_webview(webview::webview* ptr, obj_deleter_fun fun) {
 		return;
 	}
 
+	auto& registry = object_registry::instance();
+	auto& dispatcher = dispatcher_registry::instance();
+
 	// Inject the WebBridge runtime
 	ptr->init(WEBBRIDGE_RUNTIME_JS);
 
-	// Bind the destroy handler
+	// ==========================================================================
+	// UNIVERSAL DISPATCHER BINDINGS (only 4 bind() calls total!)
+	// ==========================================================================
+
+	// 1. Universal CREATE dispatcher
+	ptr->bind("__webbridge_create",
+		[&registry, &dispatcher, ptr](const std::string& req_id, const std::string& req, void*) {
+			try {
+				auto args = nlohmann::json::parse(req);
+				auto class_name = args.at(0).get<std::string>();
+				
+				// Remove className from args, pass rest to handler
+				nlohmann::json create_args = nlohmann::json::array();
+				for (size_t i = 1; i < args.size(); ++i) {
+					create_args.push_back(args[i]);
+				}
+				
+				const auto& handler = dispatcher.get_handler(class_name);
+				auto object_id = handler.create(*ptr, registry, create_args);
+				ptr->resolve(req_id, 0, nlohmann::json(object_id).dump());
+			} catch (const std::exception& e) {
+				ptr->resolve(req_id, 1, nlohmann::json{{"error", e.what()}}.dump());
+			}
+		}, nullptr);
+
+	// 2. Universal SYNC dispatcher
+	ptr->bind("__webbridge_sync",
+		[&registry, &dispatcher, ptr](const std::string& req_id, const std::string& req, void*) {
+			try {
+				auto args = nlohmann::json::parse(req);
+				auto class_name = args.at(0).get<std::string>();
+				auto object_id = args.at(1).get<std::string>();
+				auto operation = args.at(2).get<std::string>();
+				auto member = args.at(3).get<std::string>();
+				
+				const auto& handler = dispatcher.get_handler(class_name);
+				handler.sync(*ptr, registry, req_id, object_id, operation, member, args);
+			} catch (const std::exception& e) {
+				ptr->resolve(req_id, 1, nlohmann::json{{"error", e.what()}}.dump());
+			}
+		}, nullptr);
+
+	// 3. Universal ASYNC dispatcher
+	ptr->bind("__webbridge_async",
+		[&registry, &dispatcher, ptr](const std::string& req_id, const std::string& req, void*) {
+			try {
+				auto args = nlohmann::json::parse(req);
+				auto class_name = args.at(0).get<std::string>();
+				auto object_id = args.at(1).get<std::string>();
+				auto method = args.at(2).get<std::string>();
+				
+				const auto& handler = dispatcher.get_handler(class_name);
+				
+				// Async handlers run in background thread
+				std::thread([handler, ptr, &registry, req_id, object_id, method, args]() {
+					try {
+						handler.async(*ptr, registry, req_id, object_id, method, args);
+					} catch (const std::exception& e) {
+						ptr->resolve(req_id, 1, nlohmann::json{{"error", e.what()}}.dump());
+					}
+				}).detach();
+			} catch (const std::exception& e) {
+				ptr->resolve(req_id, 1, nlohmann::json{{"error", e.what()}}.dump());
+			}
+		}, nullptr);
+
+	// 4. Universal DESTROY dispatcher
 	ptr->bind("__webbridge_destroy", [fun](const std::string& req) -> std::string {
 		auto args = nlohmann::json::parse(req);
 		auto object_id = args.at(0).get<std::string>();
@@ -363,7 +420,8 @@ std::string generate_js_class_wrapper(
 	const std::vector<std::string>& instance_constants,
 	const nlohmann::json& static_constants)
 {
-	// Runtime is already injected via init_webview, no polling needed
+	// Runtime is already injected via init_webview
+	// JS now uses universal __webbridge_* functions instead of per-class bindings
 	std::string js = std::format(R"(
 (function() {{
 	try {{

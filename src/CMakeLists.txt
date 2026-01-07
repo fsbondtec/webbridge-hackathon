@@ -146,7 +146,7 @@ webbridge_generate(
 set_target_properties(webbridge_hackathon PROPERTIES FOLDER src)
 set_target_properties(webbridge_hackathon PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
-target_compile_options(webbridge_hackathon PRIVATE /W3)
+target_compile_options(webbridge_hackathon PRIVATE /W3 /bigobj)
 
 source_group("generated Files" REGULAR_EXPRESSION ".*_registration\.h$")
 source_group(
