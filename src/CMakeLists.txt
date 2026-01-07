@@ -2,7 +2,6 @@ find_package(fmt REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(httplib REQUIRED)
 find_package(portable-file-dialogs REQUIRED)
-find_package(magic_enum REQUIRED)
 
 FetchContent_Declare(
 	webview
@@ -63,7 +62,6 @@ target_link_libraries(webbridge_hackathon PRIVATE
 	nlohmann_json::nlohmann_json
 	httplib::httplib
 	portable-file-dialogs::portable-file-dialogs
-	magic_enum::magic_enum
 	frontend_resources
 )
 
