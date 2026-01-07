@@ -149,7 +149,7 @@ function __webbridge_createEvent() {
 }
 
 // =============================================================================
-// Class Factory (V8-optimized)
+// Class Factory (V8-optimized v2 - parallel instanceConstants fetch)
 // =============================================================================
 
 function __webbridge_createClass(config) {
@@ -157,11 +157,21 @@ function __webbridge_createClass(config) {
 
     console.log(`[WebBridge] createClass: ${className}`);
 
-    // Cache binding function references (avoid template string lookups in hot path)
-    const createFn = window['__create_' + className];
-    const syncFn = window['__' + className + '_sync'];
-    const asyncFn = window['__' + className + '_async'];
+    // Pre-compute function names as strings (avoid runtime concatenation in lookups)
+    const createFnName = '__create_' + className;
+    const syncFnName = '__' + className + '_sync';
+    const asyncFnName = '__' + className + '_async';
+    
+    // Cache binding function references
+    const createFn = window[createFnName];
+    const syncFn = window[syncFnName];
+    const asyncFn = window[asyncFnName];
     const destroyFn = window.__webbridge_destroy;
+    
+    // Validate bindings exist
+    if (!createFn || !syncFn) {
+        throw new Error(`[WebBridge] Missing bindings for ${className}`);
+    }
     
     // Store in cache for property creation
     __webbridge_class_bindings[className] = { syncFn, asyncFn };
@@ -182,6 +192,15 @@ function __webbridge_createClass(config) {
             return asyncFn(this.__id, methodName, ...args);
         };
     }
+
+    // Pre-compute counts
+    const propCount = properties.length;
+    const eventCount = events.length;
+    const syncMethodCount = syncMethods.length;
+    const asyncMethodCount = asyncMethods.length;
+    const instanceConstCount = instanceConstants.length;
+    const staticKeys = Object.keys(staticConstants);
+    const staticCount = staticKeys.length;
 
     const factory = {
         async create(...args) {
@@ -219,7 +238,7 @@ function __webbridge_createClass(config) {
             };
 
             // Add all properties
-            for (let i = 0; i < properties.length; i++) {
+            for (let i = 0; i < propCount; i++) {
                 const propName = properties[i];
                 descriptors[propName] = {
                     value: __webbridge_createProperty(objectId, syncFn, propName),
@@ -230,7 +249,7 @@ function __webbridge_createClass(config) {
             }
             
             // Add all events
-            for (let i = 0; i < events.length; i++) {
+            for (let i = 0; i < eventCount; i++) {
                 descriptors[events[i]] = {
                     value: __webbridge_createEvent(),
                     writable: false,
@@ -240,7 +259,7 @@ function __webbridge_createClass(config) {
             }
             
             // Add all sync methods
-            for (let i = 0; i < syncMethods.length; i++) {
+            for (let i = 0; i < syncMethodCount; i++) {
                 const methodName = syncMethods[i];
                 descriptors[methodName] = {
                     value: syncMethodWrappers[methodName],
@@ -251,7 +270,7 @@ function __webbridge_createClass(config) {
             }
             
             // Add all async methods
-            for (let i = 0; i < asyncMethods.length; i++) {
+            for (let i = 0; i < asyncMethodCount; i++) {
                 const methodName = asyncMethods[i];
                 descriptors[methodName] = {
                     value: asyncMethodWrappers[methodName],
@@ -261,21 +280,25 @@ function __webbridge_createClass(config) {
                 };
             }
             
-            // Add all instance constants (await first, then add to descriptors)
-            for (let i = 0; i < instanceConstants.length; i++) {
-                const constName = instanceConstants[i];
-                const constValue = await syncFn(objectId, "const", constName);
-                descriptors[constName] = {
-                    value: constValue,
-                    writable: false,
-                    enumerable: true,
-                    configurable: false
-                };
+            // OPTIMIZATION: Fetch all instance constants in parallel with Promise.all
+            if (instanceConstCount > 0) {
+                const constPromises = new Array(instanceConstCount);
+                for (let i = 0; i < instanceConstCount; i++) {
+                    constPromises[i] = syncFn(objectId, "const", instanceConstants[i]);
+                }
+                const constValues = await Promise.all(constPromises);
+                for (let i = 0; i < instanceConstCount; i++) {
+                    descriptors[instanceConstants[i]] = {
+                        value: constValues[i],
+                        writable: false,
+                        enumerable: true,
+                        configurable: false
+                    };
+                }
             }
             
             // Add all static constants
-            const staticKeys = Object.keys(staticConstants);
-            for (let i = 0; i < staticKeys.length; i++) {
+            for (let i = 0; i < staticCount; i++) {
                 const key = staticKeys[i];
                 descriptors[key] = {
                     value: staticConstants[key],
@@ -295,8 +318,7 @@ function __webbridge_createClass(config) {
     };
 
     // Assign static constants to factory (class level)
-    const staticKeys = Object.keys(staticConstants);
-    for (let i = 0; i < staticKeys.length; i++) {
+    for (let i = 0; i < staticCount; i++) {
         const key = staticKeys[i];
         factory[key] = staticConstants[key];
     }
