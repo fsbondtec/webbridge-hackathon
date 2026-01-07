@@ -59,5 +59,3 @@ cmake --preset conan-default
 CALL conda deactivate
 
 :END
-
-PAUSE
