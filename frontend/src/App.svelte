@@ -244,7 +244,7 @@
       log(`TestObject created: ${testObj.handle}`, 'success');
 
       const iterations = 1000;
-      const warmupRuns = 20;
+      const warmupRuns = 50;
 
       // ===== SYNC BENCHMARK =====
       log(`\n--- Sync Benchmark (${iterations} iterations) ---`, 'info');
