@@ -196,6 +196,44 @@
     return { min, max, avg, stdev, total };
   }
 
+  async function testTestObject8() {
+    try {
+      log('=== Testing TestObject8 ===', 'info');
+      
+      // Create TestObject8
+      log('Creating TestObject8...', 'info');
+      const testObj8 = await window.TestObject8.create();
+      log(`TestObject8 created: ${testObj8.handle}`, 'success');
+
+      // Log constants
+      log(`CONST1: ${testObj8.CONST1}, CONST2: ${testObj8.CONST2}`, 'info');
+
+      // Read initial properties
+      const prop1 = await testObj8.prop1.get();
+      const prop2 = await testObj8.prop2.get();
+      log(`Initial prop1: ${prop1}, prop2: ${prop2}`, 'info');
+
+      // Call method1 (sync)
+      log('Calling method1(42)...', 'info');
+      const result1 = await testObj8.method1(42);
+      log(`method1(42) returned: ${result1}`, 'success');
+
+      // Call method2 (async)
+      log('Calling method2("Hello")...', 'info');
+      const result2 = await testObj8.method2("Hello");
+      log(`method2("Hello") returned: ${result2}`, 'success');
+
+      // Cleanup
+      log('Destroying TestObject8...', 'info');
+      testObj8.destroy();
+      log('TestObject8 destroyed', 'success');
+      log('=== TestObject8 test complete ===', 'success');
+
+    } catch (error) {
+      log(`TestObject8 test failed: ${error}`, 'error');
+    }
+  }
+
   async function runBenchmark() {
     try {
       log('=== STARTING BENCHMARK ===', 'info');
@@ -317,6 +355,9 @@
       </button>
       <button on:click={runBenchmark} class="benchmark-btn">
         🚀 Run Benchmark (TestObject)
+      </button>
+      <button on:click={testTestObject8} class="test-btn">
+        🧪 Test TestObject8
       </button>
     </div>
 
@@ -472,6 +513,15 @@
 
   .benchmark-btn:hover {
     background: #f57c00;
+  }
+
+  .test-btn {
+    background: #00bcd4;
+    font-weight: bold;
+  }
+
+  .test-btn:hover {
+    background: #0097a7;
   }
 
   .properties {
