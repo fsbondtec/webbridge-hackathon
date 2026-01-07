@@ -58,30 +58,11 @@
 #include <atomic>
 #include <memory>
 
-namespace webbridge {
+namespace webbridge::impl {
 
-// =============================================================================
-// Configuration API (für Client-Code)
-// =============================================================================
-
-namespace config {
-
-/**
- * Setzt die Anzahl der Worker-Threads im Thread-Pool.
- * MUSS vor dem ersten Async-Call aufgerufen werden!
- * 
- * @param num_threads Anzahl der Worker-Threads (0 = auto = CPU-Kerne)
- */
 void set_thread_pool_size(size_t num_threads);
-
-/**
- * Gibt die konfigurierte Thread-Pool-Größe zurück.
- */
 size_t get_thread_pool_size();
 
-} // namespace config
-
-namespace impl {
 
 // =============================================================================
 // Simple Thread Pool Implementation
@@ -195,4 +176,3 @@ private:
 thread_pool& get_thread_pool();
 
 } // namespace impl
-} // namespace webbridge
