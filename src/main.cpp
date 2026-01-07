@@ -1,4 +1,39 @@
 #include "TestObject_registration.h"
+#include "TestObject1_registration.h"
+#include "TestObject2_registration.h"
+#include "TestObject3_registration.h"
+#include "TestObject4_registration.h"
+#include "TestObject5_registration.h"
+#include "TestObject6_registration.h"
+#include "TestObject7_registration.h"
+#include "TestObject8_registration.h"
+#include "TestObject9_registration.h"
+#include "TestObject10_registration.h"
+#include "TestObject11_registration.h"
+#include "TestObject12_registration.h"
+#include "TestObject13_registration.h"
+#include "TestObject14_registration.h"
+#include "TestObject15_registration.h"
+#include "TestObject16_registration.h"
+#include "TestObject17_registration.h"
+#include "TestObject18_registration.h"
+#include "TestObject19_registration.h"
+#include "TestObject20_registration.h"
+#include "TestObject21_registration.h"
+#include "TestObject22_registration.h"
+#include "TestObject23_registration.h"
+#include "TestObject24_registration.h"
+#include "TestObject25_registration.h"
+#include "TestObject26_registration.h"
+#include "TestObject27_registration.h"
+#include "TestObject28_registration.h"
+#include "TestObject29_registration.h"
+#include "TestObject30_registration.h"
+#include "TestObject31_registration.h"
+#include "TestObject32_registration.h"
+#include "TestObject33_registration.h"
+#include "TestObject34_registration.h"
+#include "TestObject35_registration.h"
 #include "MyObject_registration.h"
 #include "ResourceServer.h"
 #include "webbridge/Object.h"
@@ -60,6 +95,189 @@ int WINAPI WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,
 			);
 		});
 
+		
+		// Register all 35 TestObjects with timing measurements
+		std::cout << "\n========== REGISTERING 35 TEST OBJECTS ==========\n" << std::endl;
+		auto total_start = std::chrono::high_resolution_clock::now();
+		
+		auto start1 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject1>(&w);
+		auto end1 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count() << " ms" << std::endl;
+		
+		auto start2 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject2>(&w);
+		auto end2 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject2: " << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2).count() << " ms" << std::endl;
+		
+		auto start3 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject3>(&w);
+		auto end3 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject3: " << std::chrono::duration_cast<std::chrono::milliseconds>(end3 - start3).count() << " ms" << std::endl;
+		
+		auto start4 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject4>(&w);
+		auto end4 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject4: " << std::chrono::duration_cast<std::chrono::milliseconds>(end4 - start4).count() << " ms" << std::endl;
+		
+		auto start5 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject5>(&w);
+		auto end5 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject5: " << std::chrono::duration_cast<std::chrono::milliseconds>(end5 - start5).count() << " ms" << std::endl;
+		
+		auto start6 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject6>(&w);
+		auto end6 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject6: " << std::chrono::duration_cast<std::chrono::milliseconds>(end6 - start6).count() << " ms" << std::endl;
+		
+		auto start7 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject7>(&w);
+		auto end7 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject7: " << std::chrono::duration_cast<std::chrono::milliseconds>(end7 - start7).count() << " ms" << std::endl;
+		
+		auto start8 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject8>(&w);
+		auto end8 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject8: " << std::chrono::duration_cast<std::chrono::milliseconds>(end8 - start8).count() << " ms" << std::endl;
+		
+		auto start9 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject9>(&w);
+		auto end9 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject9: " << std::chrono::duration_cast<std::chrono::milliseconds>(end9 - start9).count() << " ms" << std::endl;
+		
+		auto start10 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject10>(&w);
+		auto end10 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject10: " << std::chrono::duration_cast<std::chrono::milliseconds>(end10 - start10).count() << " ms" << std::endl;
+		
+		auto start11 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject11>(&w);
+		auto end11 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject11: " << std::chrono::duration_cast<std::chrono::milliseconds>(end11 - start11).count() << " ms" << std::endl;
+		
+		auto start12 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject12>(&w);
+		auto end12 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject12: " << std::chrono::duration_cast<std::chrono::milliseconds>(end12 - start12).count() << " ms" << std::endl;
+		
+		auto start13 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject13>(&w);
+		auto end13 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject13: " << std::chrono::duration_cast<std::chrono::milliseconds>(end13 - start13).count() << " ms" << std::endl;
+		
+		auto start14 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject14>(&w);
+		auto end14 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject14: " << std::chrono::duration_cast<std::chrono::milliseconds>(end14 - start14).count() << " ms" << std::endl;
+		
+		auto start15 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject15>(&w);
+		auto end15 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject15: " << std::chrono::duration_cast<std::chrono::milliseconds>(end15 - start15).count() << " ms" << std::endl;
+		
+		auto start16 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject16>(&w);
+		auto end16 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject16: " << std::chrono::duration_cast<std::chrono::milliseconds>(end16 - start16).count() << " ms" << std::endl;
+		
+		auto start17 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject17>(&w);
+		auto end17 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject17: " << std::chrono::duration_cast<std::chrono::milliseconds>(end17 - start17).count() << " ms" << std::endl;
+		
+		auto start18 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject18>(&w);
+		auto end18 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject18: " << std::chrono::duration_cast<std::chrono::milliseconds>(end18 - start18).count() << " ms" << std::endl;
+		
+		auto start19 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject19>(&w);
+		auto end19 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject19: " << std::chrono::duration_cast<std::chrono::milliseconds>(end19 - start19).count() << " ms" << std::endl;
+		
+		auto start20 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject20>(&w);
+		auto end20 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject20: " << std::chrono::duration_cast<std::chrono::milliseconds>(end20 - start20).count() << " ms" << std::endl;
+		
+		auto start21 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject21>(&w);
+		auto end21 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject21: " << std::chrono::duration_cast<std::chrono::milliseconds>(end21 - start21).count() << " ms" << std::endl;
+		
+		auto start22 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject22>(&w);
+		auto end22 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject22: " << std::chrono::duration_cast<std::chrono::milliseconds>(end22 - start22).count() << " ms" << std::endl;
+		
+		auto start23 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject23>(&w);
+		auto end23 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject23: " << std::chrono::duration_cast<std::chrono::milliseconds>(end23 - start23).count() << " ms" << std::endl;
+		
+		auto start24 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject24>(&w);
+		auto end24 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject24: " << std::chrono::duration_cast<std::chrono::milliseconds>(end24 - start24).count() << " ms" << std::endl;
+		
+		auto start25 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject25>(&w);
+		auto end25 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject25: " << std::chrono::duration_cast<std::chrono::milliseconds>(end25 - start25).count() << " ms" << std::endl;
+		
+		auto start26 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject26>(&w);
+		auto end26 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject26: " << std::chrono::duration_cast<std::chrono::milliseconds>(end26 - start26).count() << " ms" << std::endl;
+		
+		auto start27 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject27>(&w);
+		auto end27 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject27: " << std::chrono::duration_cast<std::chrono::milliseconds>(end27 - start27).count() << " ms" << std::endl;
+		
+		auto start28 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject28>(&w);
+		auto end28 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject28: " << std::chrono::duration_cast<std::chrono::milliseconds>(end28 - start28).count() << " ms" << std::endl;
+		
+		auto start29 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject29>(&w);
+		auto end29 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject29: " << std::chrono::duration_cast<std::chrono::milliseconds>(end29 - start29).count() << " ms" << std::endl;
+		
+		auto start30 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject30>(&w);
+		auto end30 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject30: " << std::chrono::duration_cast<std::chrono::milliseconds>(end30 - start30).count() << " ms" << std::endl;
+		
+		auto start31 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject31>(&w);
+		auto end31 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject31: " << std::chrono::duration_cast<std::chrono::milliseconds>(end31 - start31).count() << " ms" << std::endl;
+		
+		auto start32 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject32>(&w);
+		auto end32 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject32: " << std::chrono::duration_cast<std::chrono::milliseconds>(end32 - start32).count() << " ms" << std::endl;
+		
+		auto start33 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject33>(&w);
+		auto end33 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject33: " << std::chrono::duration_cast<std::chrono::milliseconds>(end33 - start33).count() << " ms" << std::endl;
+		
+		auto start34 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject34>(&w);
+		auto end34 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject34: " << std::chrono::duration_cast<std::chrono::milliseconds>(end34 - start34).count() << " ms" << std::endl;
+		
+		auto start35 = std::chrono::high_resolution_clock::now();
+		webbridge::register_type<TestObject35>(&w);
+		auto end35 = std::chrono::high_resolution_clock::now();
+		std::cout << "TestObject35: " << std::chrono::duration_cast<std::chrono::milliseconds>(end35 - start35).count() << " ms" << std::endl;
+		
+		auto total_end = std::chrono::high_resolution_clock::now();
+		auto total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(total_end - total_start);
+		std::cout << "\n========== TOTAL TIME: " << total_duration.count() << " ms ==========\n" << std::endl;
 		
 		// Register TestObject BEFORE MyObject
 		std::cout << "Starting register_type for TestObject..." << std::endl;
