@@ -22,5 +22,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.js",
+    "src/**/*.svelte",
+    "../build/frontend/generated/*.d.ts"
+  ]
 }

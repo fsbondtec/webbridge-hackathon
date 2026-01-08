@@ -54,7 +54,7 @@ frontend/logs/
 .svelte-kit/
 
 # Frontend - Auto-generated
-frontend/src/*.types.d.ts
+# (generated types are now in build/frontend/generated/)
 
 # IDE - Visual Studio
 .vs/

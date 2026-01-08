@@ -7,7 +7,7 @@ set(WEBBRIDGE_HEADER_FILES
 	${CMAKE_SOURCE_DIR}/src/TestObject.h
 )
 
-set(WEBBRIDGE_OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(WEBBRIDGE_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
 
 # Automatically generate list of expected output files
 set(GENERATED_TS_FILES)
