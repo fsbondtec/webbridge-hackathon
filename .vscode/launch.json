@@ -11,7 +11,11 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "console": "integratedTerminal",
-            "preLaunchTask": "Build: Debug"
+            "preLaunchTask": "Build: Debug",
+            "symbolSearchPath": "${workspaceFolder}/build/src/Debug",
+            "sourceFileMap": {
+                "/build/": "${workspaceFolder}/"
+            }
         },
         {
             "name": "Release",

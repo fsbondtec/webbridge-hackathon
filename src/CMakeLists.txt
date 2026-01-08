@@ -31,7 +31,6 @@ set(webbridge_hackathon_WebBridge_SOURCES
 	webbridge/impl/property_impl.h
 	webbridge/impl/type_registration.h
 	webbridge/impl/type_registration.cpp
-
 	webbridge/error.h
 	webbridge/object.h
 )
@@ -47,7 +46,7 @@ add_executable(webbridge_hackathon WIN32
 	${webbridge_hackathon_TO_REGISTRATION_SOURCES}
 )
 
-target_compile_features(webbridge_hackathon PRIVATE cxx_std_17)
+target_compile_features(webbridge_hackathon PRIVATE cxx_std_20)
 
 target_link_libraries(webbridge_hackathon PRIVATE
 	webview::core
