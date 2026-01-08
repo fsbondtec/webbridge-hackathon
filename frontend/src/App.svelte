@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import type { MyObject } from './MyObject.types';
+  import { MyObject } from './MyObject';
+  import type { MyObject as MyObjectType } from './MyObject.types';
   import bildUrl from './assets/bild.jpg';
 
   // State
-  let obj: MyObject | null = null;
+  let obj: MyObjectType | null = null;
   let logs: string[] = [];
 
   // Store subscriptions
@@ -26,8 +27,8 @@
     try {
       log('Creating object...', 'info');
 
-      log(`Static constant appversion: ${window.MyObject.appversion}`, 'info');
-      const newObj = await window.MyObject.create('fab');
+      log(`Static constant appversion: ${MyObject.appversion}`, 'info');
+      const newObj = await MyObject.create('fab');
       log(`Object created: ${newObj.handle}`, 'success');
       newObj.aEvent.on((intVal, boolVal) => {
         log(`🔔 Event received: int=${intVal}, bool=${boolVal}`);
@@ -35,7 +36,7 @@
 
       // Log constants (instance and static)
       log(`Instance constant aversion: ${newObj.version}`, 'info');
-      log(`Instance constant CPP_VERSION: ${window.MyObject.CPP_VERSION}`, 'info');
+      log(`Instance constant CPP_VERSION: ${MyObject.CPP_VERSION}`, 'info');
       log(`Static constant CPP_VERSION: ${newObj.CPP_VERSION}`, 'info');
 
       obj = newObj;

@@ -106,6 +106,19 @@ def generate_typescript(cls: ClassInfo, header_path: str) -> str:
     )
 
 
+def generate_typescript_impl(cls: ClassInfo, header_path: str) -> str:
+    """Generiert die TypeScript .ts Implementierung."""
+    try:
+        template = _JINJA_ENV.get_template("impl.ts.j2")
+    except Exception as e:
+        raise FileNotFoundError(f"Konnte Template 'impl.ts.j2' nicht laden: {e}") from e
+
+    return template.render(
+        cls=cls,
+        header_path=Path(header_path).name,
+    )
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -133,6 +146,7 @@ def main():
     parser.add_argument('--class-name', required=True, help='Name der zu verarbeitenden Klasse')
     parser.add_argument('--cpp_out', type=str, help='Ausgabe-Ordner für C++ Registration Header')
     parser.add_argument('--ts_out', type=str, help='Ausgabe-Ordner für TypeScript Type Definitionen')
+    parser.add_argument('--ts_impl_out', type=str, help='Ausgabe-Ordner für TypeScript Implementierung')
 
     args = parser.parse_args()
 
@@ -143,8 +157,8 @@ def main():
         print(f"Fehler: Datei nicht gefunden: {input_path}", file=sys.stderr)
         sys.exit(1)
 
-    if not args.cpp_out and not args.ts_out:
-        print("Fehler: Mindestens --cpp_out oder --ts_out muss angegeben werden", file=sys.stderr)
+    if not args.cpp_out and not args.ts_out and not args.ts_impl_out:
+        print("Fehler: Mindestens --cpp_out, --ts_out oder --ts_impl_out muss angegeben werden", file=sys.stderr)
         sys.exit(1)
 
     print(f"Parsing: {input_path} -> {args.class_name}")
@@ -190,6 +204,16 @@ def main():
             with open(ts_output, 'w', encoding='utf-8') as f:
                 f.write(ts_code)
             print(f"  [OK] Generiert: {ts_output}")
+
+        # TypeScript Implementierung generieren (falls --ts_impl_out angegeben)
+        if args.ts_impl_out:
+            ts_impl_out_path = Path(args.ts_impl_out)
+            ts_impl_out_path.mkdir(parents=True, exist_ok=True)
+            ts_impl_output = ts_impl_out_path / f"{cls.name}.ts"
+            ts_impl_code = generate_typescript_impl(cls, input_path)
+            with open(ts_impl_output, 'w', encoding='utf-8') as f:
+                f.write(ts_impl_code)
+            print(f"  [OK] Generiert: {ts_impl_output}")
 
     except Exception as e:
         print(f"  [ERROR] Fehler bei {cls.name}: {e}", file=sys.stderr)

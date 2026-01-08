@@ -13,6 +13,14 @@ webbridge_generate(
 	OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+webbridge_generate(
+	TARGET webbridge_gen
+	FILES
+		${CMAKE_SOURCE_DIR}/src/MyObject.h
+	LANGUAGE ts-impl
+	OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
 set_target_properties(webbridge_gen
 	PROPERTIES FOLDER "frontend"
 )

@@ -155,8 +155,12 @@ function(webbridge_generate)
 			set(output_file "${arg_OUTPUT_DIR}/${class_name}.types.d.ts")
 			set(template_file "${CMAKE_SOURCE_DIR}/tools/templates/types.d.ts.j2")
 			set(python_out_arg --ts_out)
+		elseif(arg_LANGUAGE STREQUAL "ts-impl")
+			set(output_file "${arg_OUTPUT_DIR}/${class_name}.ts")
+			set(template_file "${CMAKE_SOURCE_DIR}/tools/templates/impl.ts.j2")
+			set(python_out_arg --ts_impl_out)
 		else()
-			message(FATAL_ERROR "Invalid LANGUAGE: ${arg_LANGUAGE}. Must be 'cpp' or 'ts'")
+			message(FATAL_ERROR "Invalid LANGUAGE: ${arg_LANGUAGE}. Must be 'cpp', 'ts', or 'ts-impl'")
 		endif()
 
 		message(STATUS "Generating ${arg_LANGUAGE} for ${file} -> ${class_name}")
@@ -171,7 +175,7 @@ function(webbridge_generate)
 		DEPENDS
 			${CMAKE_SOURCE_DIR}/tools/generate.py
 				${CMAKE_SOURCE_DIR}/tools/parser.py
-				${CMAKE_SOURCE_DIR}/tools/typescript_types.py
+				${CMAKE_SOURCE_DIR}/tools/tstypes.py
 				${template_file}
 				${file}
 			COMMENT "Running webbridge registration on ${file} (${class_name}) for ${arg_LANGUAGE}"

@@ -307,13 +307,14 @@ function __webbridge_createClass(config) {
         }
     };
 
-    // Assign static constants to factory
+    // Export factory function directly as window.__webbridge_create{ClassName}
+    window[`__webbridge_create${className}`] = factory.create;
+
+    // Export static constants as separate window properties
     for (let i = 0; i < staticCount; i++) {
         const key = staticKeys[i];
-        factory[key] = staticConstants[key];
+        window[`__webbridge_${className}_${key}`] = staticConstants[key];
     }
-
-    window[className] = factory;
 }
 
 console.log('[WebBridge] Runtime loaded (Dispatcher Version)');
