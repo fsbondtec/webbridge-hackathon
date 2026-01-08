@@ -1,11 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { MyObject } from './MyObject';
-  import type { MyObject as MyObjectType } from './MyObject.types';
   import bildUrl from './assets/bild.jpg';
 
   // State
-  let obj: MyObjectType | null = null;
+  let obj: MyObject | null = null;
   let logs: string[] = [];
 
   // Store subscriptions

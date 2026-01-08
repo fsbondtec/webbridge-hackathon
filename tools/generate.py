@@ -93,19 +93,6 @@ def generate_registration(cls: ClassInfo, header_path: str) -> str:
     )
 
 
-def generate_typescript(cls: ClassInfo, header_path: str) -> str:
-    """Generiert die TypeScript .d.ts Type Definitionen."""
-    try:
-        template = _JINJA_ENV.get_template("types.d.ts.j2")
-    except Exception as e:
-        raise FileNotFoundError(f"Konnte Template 'types.d.ts.j2' nicht laden: {e}") from e
-
-    return template.render(
-        cls=cls,
-        header_path=Path(header_path).name,
-    )
-
-
 def generate_typescript_impl(cls: ClassInfo, header_path: str) -> str:
     """Generiert die TypeScript .ts Implementierung."""
     try:
@@ -194,16 +181,6 @@ def main():
             with open(reg_output, 'w', encoding='utf-8') as f:
                 f.write(reg_code)
             print(f"  [OK] Generiert: {reg_output}")
-
-        # TypeScript Type Definitionen generieren (falls --ts_out angegeben)
-        if args.ts_out:
-            ts_out_path = Path(args.ts_out)
-            ts_out_path.mkdir(parents=True, exist_ok=True)
-            ts_output = ts_out_path / f"{cls.name}.types.d.ts"
-            ts_code = generate_typescript(cls, input_path)
-            with open(ts_output, 'w', encoding='utf-8') as f:
-                f.write(ts_code)
-            print(f"  [OK] Generiert: {ts_output}")
 
         # TypeScript Implementierung generieren (falls --ts_impl_out angegeben)
         if args.ts_impl_out:
