@@ -55,7 +55,6 @@ frontend/logs/
 
 # Frontend - Auto-generated
 frontend/src/*.types.d.ts
-frontend/src/*.stores.ts
 
 # IDE - Visual Studio
 .vs/

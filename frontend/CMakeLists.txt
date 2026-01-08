@@ -1,20 +1,31 @@
 find_program(NPM_EXECUTABLE npm REQUIRED)
 message(STATUS "Found npm: ${NPM_EXECUTABLE}")
 
-add_custom_target(webbridge_gen
-	COMMENT "Generating TypeScript types from C++ headers"
+# Generate TypeScript types for C++ classes
+set(WEBBRIDGE_HEADER_FILES
+	${CMAKE_SOURCE_DIR}/src/MyObject.h
+	${CMAKE_SOURCE_DIR}/src/TestObject.h
 )
+
+set(WEBBRIDGE_OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+# Automatically generate list of expected output files
+set(GENERATED_TS_FILES)
+foreach(header_file ${WEBBRIDGE_HEADER_FILES})
+	get_filename_component(class_name ${header_file} NAME_WE)
+	list(APPEND GENERATED_TS_FILES "${WEBBRIDGE_OUTPUT_DIR}/${class_name}.types.d.ts")
+endforeach()
 
 webbridge_generate(
 	TARGET webbridge_gen
-	FILES
-		${CMAKE_SOURCE_DIR}/src/MyObject.h
+	FILES ${WEBBRIDGE_HEADER_FILES}
 	LANGUAGE ts
-	OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
+	OUTPUT_DIR ${WEBBRIDGE_OUTPUT_DIR}
 )
 
-set_target_properties(webbridge_gen
-	PROPERTIES FOLDER "frontend"
+add_custom_target(webbridge_gen ALL
+	DEPENDS ${GENERATED_TS_FILES}
+	COMMENT "Generating TypeScript types from C++ headers"
 )
 
 set(NPM_INSTALL_STAMP ${CMAKE_CURRENT_BINARY_DIR}/npm_install.stamp)
@@ -30,10 +41,6 @@ add_custom_command(
 
 add_custom_target(npm_install
 	DEPENDS ${NPM_INSTALL_STAMP}
-)
-
-set_target_properties(npm_install
-	PROPERTIES FOLDER "frontend"
 )
 
 set(ASSETS
@@ -100,10 +107,6 @@ add_custom_target(frontend_build ALL
 
 add_dependencies(frontend_build npm_install webbridge_gen)
 
-set_target_properties(frontend_build
-	PROPERTIES FOLDER "frontend"
-)
-
 set(FRONTEND_DIST_FILES
 	dist/assets/index.css
 	dist/assets/index.js
@@ -122,7 +125,3 @@ cmrc_add_resource_library(
 )
 
 add_dependencies(frontend_resources frontend_build)
-
-set_target_properties(frontend_resources
-	PROPERTIES FOLDER "frontend"
-)

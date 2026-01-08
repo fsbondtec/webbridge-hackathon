@@ -9,13 +9,6 @@ FetchContent_Declare(
 	GIT_TAG 0.12.0)
 FetchContent_MakeAvailable(webview)
 
-if(TARGET webview_core_shared)
-	set_target_properties(webview_core_shared PROPERTIES FOLDER "CMakePredefinedTargets")
-endif()
-if(TARGET webview_core_static)
-	set_target_properties(webview_core_static PROPERTIES FOLDER "CMakePredefinedTargets")
-endif()
-
 project(webbridge_hackathon LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -71,19 +64,7 @@ webbridge_generate(
 	LANGUAGE cpp
 )
 
-set_target_properties(webbridge_hackathon PROPERTIES FOLDER src)
-set_target_properties(webbridge_hackathon PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
-
 target_compile_options(webbridge_hackathon PRIVATE /W3)
-
-source_group("generated Files" REGULAR_EXPRESSION ".*_registration\.h$")
-source_group(
-	TREE "${CMAKE_CURRENT_SOURCE_DIR}"
-	FILES
-		${webbridge_hackathon_SOURCES}
-		${webbridge_hackathon_WebBridge_SOURCES}
-		${webbridge_hackathon_TO_REGISTRATION_SOURCES}
-)
 
 add_custom_command(TARGET webbridge_hackathon POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/bin

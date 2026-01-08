@@ -11,7 +11,7 @@ if exist frontend\dist (
 	rmdir /s /q frontend\dist
 )
 if exist frontend\src\*.types.d.ts (
-	del frontend\src\*.types.d.ts
+	del /q frontend\src\*.types.d.ts
 )
 if exist frontend\node_modules (
 	rmdir /s /q frontend\node_modules
