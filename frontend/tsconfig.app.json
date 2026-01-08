@@ -17,7 +17,11 @@
     "checkJs": true,
     "moduleDetection": "force",
 
-    
+    /* Path mapping for generated types */
+    "baseUrl": ".",
+    "paths": {
+      "*.types": ["../build/frontend/generated/*.types.d.ts"]
+    },
     
     /* Linting */
     "strict": true,
