@@ -43,7 +43,8 @@ export interface {{ cls.name }} {
   // Events
 {% for event in cls.events %}
   {{ event.name }}: {
-    on: (callback: ({% for arg_type in event.arg_types %}{{ arg_type | ts_type }}{{ ", " if not loop.last }}{% endfor %}) => void) => void;
+    on: (callback: ({% for arg_type in event.arg_types %}{{ arg_type | ts_type }}{{ ", " if not loop.last }}{% endfor %}) => void) => () => void;
+    once: (callback: ({% for arg_type in event.arg_types %}{{ arg_type | ts_type }}{{ ", " if not loop.last }}{% endfor %}) => void) => void;
   };
 {% endfor %}
 
@@ -67,8 +68,3 @@ export interface {{ cls.name }}Static {
 {% endfor %}
 }
 
-declare global {
-  interface Window {
-    {{ cls.name }}: {{ cls.name }}Static;
-  }
-}

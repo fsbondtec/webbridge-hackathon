@@ -1,11 +1,11 @@
 // Auto-generated TypeScript implementation for {{ cls.name }}
 // Generated from: {{ header_path }}
 
-import type { {{ cls.name }}, {{ cls.name }}Static } from './{{ cls.name }}.types';
+import type { {{ cls.name }} as I{{ cls.name }}, {{ cls.name }}Static } from './{{ cls.name }}.types';
 
 export const {{ cls.name }}: {{ cls.name }}Static = {
-  {%- set ctor = cls.constructors[0] if cls.constructors else none %}
-  async create({% if ctor %}{% for param_type, param_name in ctor.parameters %}{{ param_name }}: {{ param_type | ts_type }}{{ ", " if not loop.last }}{% endfor %}{% endif %}): Promise<{{ cls.name }}> {
+  {% set ctor = cls.constructors[0] if cls.constructors else none %}
+  async create({% if ctor %}{% for param_type, param_name in ctor.parameters %}{{ param_name }}: {{ param_type | ts_type }}{{ ", " if not loop.last }}{% endfor %}{% endif %}): Promise<I{{ cls.name }}> {
     return (window as any).__webbridge_create{{ cls.name }}({% if ctor %}{% for param_type, param_name in ctor.parameters %}{{ param_name }}{{ ", " if not loop.last }}{% endfor %}{% endif %});
   },
 {% for const in cls.constants if const.is_static %}
