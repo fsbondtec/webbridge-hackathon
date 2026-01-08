@@ -234,6 +234,66 @@
     }
   }
 
+  async function runJsonBenchmark() {
+    try {
+      log('=== STARTING JSON BENCHMARK ===', 'info');
+      
+      // Create TestObject
+      log('Creating TestObject...', 'info');
+      const testObj = await window.TestObject.create();
+      log(`TestObject created: ${testObj.handle}`, 'success');
+
+      log('Running JSON deserialization benchmark (1000 iterations in C++)...', 'info');
+      const start = performance.now();
+      const cppDuration = await testObj.jsonBench();
+      const jsOverhead = performance.now() - start;
+      
+      log(`JSON Benchmark Results:`, 'success');
+      log(`  C++ Time: ${cppDuration.toFixed(3)} ms`, 'info');
+      log(`  JS Overhead: ${(jsOverhead - cppDuration).toFixed(3)} ms`, 'info');
+      log(`  Total (JS->C++->JS): ${jsOverhead.toFixed(3)} ms`, 'info');
+      log(`  Per iteration (C++): ${(cppDuration / 1000).toFixed(3)} ms (${(cppDuration).toFixed(1)} µs)`, 'info');
+
+      // Cleanup
+      log('\nDestroying TestObject...', 'info');
+      testObj.destroy();
+      log('TestObject destroyed', 'success');
+      log('=== JSON BENCHMARK COMPLETE ===', 'success');
+
+    } catch (error) {
+      log(`JSON Benchmark failed: ${error}`, 'error');
+    }
+  }
+
+  async function runJsonBenchmark2() {
+    try {
+      log('=== STARTING JSON ARRAY BENCHMARK ===', 'info');
+      // Create TestObject
+      log('Creating TestObject...', 'info');
+      const testObj = await window.TestObject.create();
+      log(`TestObject created: ${testObj.handle}`, 'success');
+
+      log('Running JSON array deserialization benchmark (1000 iterations in C++)...', 'info');
+      const start = performance.now();
+      const cppDuration = await testObj.jsonBench2();
+      const jsOverhead = performance.now() - start;
+
+      log(`JSON Array Benchmark Results:`, 'success');
+      log(`  C++ Time: ${cppDuration.toFixed(3)} ms`, 'info');
+      log(`  JS Overhead: ${(jsOverhead - cppDuration).toFixed(3)} ms`, 'info');
+      log(`  Total (JS->C++->JS): ${jsOverhead.toFixed(3)} ms`, 'info');
+      log(`  Per iteration (C++): ${(cppDuration / 1000).toFixed(3)} ms (${(cppDuration).toFixed(1)} µs)`, 'info');
+
+      // Cleanup
+      log('\nDestroying TestObject...', 'info');
+      testObj.destroy();
+      log('TestObject destroyed', 'success');
+      log('=== JSON ARRAY BENCHMARK COMPLETE ===', 'success');
+    } catch (error) {
+      log(`JSON Array Benchmark failed: ${error}`, 'error');
+    }
+  }
+
   async function runBenchmark() {
     try {
       log('=== STARTING BENCHMARK ===', 'info');
@@ -355,6 +415,12 @@
       </button>
       <button on:click={runBenchmark} class="benchmark-btn">
         🚀 Run Benchmark (TestObject)
+      </button>
+      <button on:click={runJsonBenchmark} class="benchmark-btn">
+        📊 Run JSON Benchmark
+      </button>
+      <button on:click={runJsonBenchmark2} class="benchmark-btn">
+        📊 Run JSON Array Benchmark
       </button>
       <button on:click={testTestObject8} class="test-btn">
         🧪 Test TestObject8

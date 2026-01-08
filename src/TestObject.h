@@ -26,4 +26,10 @@ public:
 
     // Benchmark: Minimale Async-Methode (triviale Rechnung)
     [[async]] int benchmarkAsync(int x);
+
+    // JSON Deserialisierung Benchmark
+    [[async]] double jsonBench();
+
+    // JSON Array Benchmark
+    [[async]] double jsonBench2();
 };
