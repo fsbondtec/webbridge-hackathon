@@ -15,7 +15,7 @@ export namespace {{ cls.name }} {
   }
 }
 {% else %}
-export enum {{ enum.name }} {
+export enum {{ cls.name }} {
 {% for value in enum.enum_values %}
   {{ value }} = "{{ value }}"{{ "," if not loop.last }}
 {% endfor %}

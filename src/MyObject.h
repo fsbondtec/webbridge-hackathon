@@ -68,6 +68,9 @@ public:
 
 public:
 	explicit MyObject(const std::string& version_) : version(version_) {}
+	virtual ~MyObject() {
+		std::ignore = 6;
+	}
 
 	[[async]] void foo(const std::string& val);
 
