@@ -16,6 +16,8 @@
     "allowJs": true,
     "checkJs": true,
     "moduleDetection": "force",
+
+    
     
     /* Linting */
     "strict": true,
