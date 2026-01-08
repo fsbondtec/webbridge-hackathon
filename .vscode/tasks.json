@@ -1,8 +1,9 @@
 {
 	"version": "2.0.0",
 	"tasks": [
+		// ===== BUILD TASKS =====
 		{
-			"label": "Build Debug",
+			"label": "Build: Debug",
 			"type": "shell",
 			"command": "cmd",
 			"args": [
@@ -25,7 +26,7 @@
 			}
 		},
 		{
-			"label": "Build Release",
+			"label": "Build: Release",
 			"type": "shell",
 			"command": "cmd",
 			"args": [
@@ -44,8 +45,70 @@
 				"clear": false
 			}
 		},
+		// ===== REBUILD TASKS =====
 		{
-			"label": "Clean and Configure",
+			"label": "Rebuild: Debug",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"build\\generators\\conanbuild.bat && cmake --build build --config Debug --clean-first"
+			],
+			"group": "build",
+			"problemMatcher": "$msCompile",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"focus": false,
+				"clear": true
+			}
+		},
+		{
+			"label": "Rebuild: Release",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"build\\generators\\conanbuild.bat && cmake --build build --config Release --clean-first"
+			],
+			"group": "build",
+			"problemMatcher": "$msCompile",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"focus": false,
+				"clear": true
+			}
+		},
+		// ===== CLEAN TASKS =====
+		{
+			"label": "Clean: All Configurations",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"cmake --build build --target clean"
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"focus": false,
+				"clear": false
+			}
+		},
+		{
+			"label": "Clean and Reconfigure",
 			"type": "shell",
 			"command": "cmd",
 			"args": [
@@ -64,8 +127,9 @@
 				"clear": true
 			}
 		},
+		// ===== FRONTEND TASKS =====
 		{
-			"label": "Build Frontend",
+			"label": "Build: Frontend",
 			"type": "shell",
 			"command": "cmd",
 			"args": [
@@ -84,18 +148,42 @@
 			}
 		},
 		{
-			"label": "Full Rebuild",
-			"dependsOrder": "sequence",
-			"dependsOn": [
-				"Clean and Configure",
-				"Build Debug"
+			"label": "Rebuild: Frontend",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"if exist dist rmdir /s /q dist && npm run build"
 			],
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
 			"group": "build",
 			"problemMatcher": [],
 			"presentation": {
 				"reveal": "always",
-				"panel": "dedicated",
-				"focus": true,
+				"panel": "shared",
+				"focus": false,
+				"clear": true
+			}
+		},
+		// ===== SPECIAL TASKS =====
+		{
+			"label": "Reconfigure CMake",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"build"
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared",
+				"focus": false,
 				"clear": true
 			}
 		}
