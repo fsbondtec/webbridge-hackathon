@@ -96,8 +96,11 @@ add_custom_command(
 		vite.config.ts
 		svelte.config.js
 		tsconfig.json
+		tsconfig.app.json
+		tsconfig.node.json
 		index.html
 		${FRONTEND_SRC_FILES}
+		${GENERATED_TS_FILES}
 	COMMENT "Building Svelte frontend"
 )
 
