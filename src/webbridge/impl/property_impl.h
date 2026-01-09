@@ -24,7 +24,12 @@ public:
 		return get();
 	}
 
+	// Kurzform für set()
 	property& operator=(T newValue) {
+		return set(std::move(newValue));
+	}
+
+	property& set(T newValue) {
 		callback cb;
 		{
 			std::unique_lock lock(mutex_);
