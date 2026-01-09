@@ -15,13 +15,13 @@ public:
 
 	explicit property(T initial) : value_(std::move(initial)) {}
 
-	[[nodiscard]] T value() const {
+	[[nodiscard]] T get() const {
 		std::shared_lock lock(mutex_);
 		return value_;
 	}
 
 	[[nodiscard]] T operator()() const {
-		return value();
+		return get();
 	}
 
 	property& operator=(T newValue) {
