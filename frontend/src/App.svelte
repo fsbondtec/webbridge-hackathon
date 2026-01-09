@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { MyObject } from './MyObject';
+  import { TestObject } from './TestObject';
+  import { TestObject8 } from './TestObject8';
   import bildUrl from './assets/bild.jpg';
 
   // State
@@ -36,7 +38,6 @@
       // Log constants (instance and static)
       log(`Instance constant aversion: ${newObj.version}`, 'info');
       log(`Instance constant CPP_VERSION: ${MyObject.CPP_VERSION}`, 'info');
-      log(`Static constant CPP_VERSION: ${newObj.CPP_VERSION}`, 'info');
 
       obj = newObj;
     } catch (error) {
@@ -147,6 +148,8 @@
       return;
     }
     
+    await obj.bar();
+    
     try {
       log('Calling multiParamTest() with 6 different parameter types...', 'info');
       const result = await obj.multiParamTest(
@@ -154,7 +157,7 @@
         true,                          // bool
         'Test String from JS',         // string
         [10, 20, 30, 40, 50],         // vector<int>
-        'Running',                     // Status enum
+        MyObject.Status.Running,      // Status enum
         { a: 777, b: 888888888 }      // Pod struct
       );
       log(`multiParamTest() returned: ${result}`, 'success');
@@ -202,16 +205,23 @@
       
       // Create TestObject8
       log('Creating TestObject8...', 'info');
-      const testObj8 = await window.TestObject8.create();
+      const testObj8 = await TestObject8.create();
       log(`TestObject8 created: ${testObj8.handle}`, 'success');
-
+      // testObj8.handle = "futarschbeidl";
+      
       // Log constants
-      log(`CONST1: ${testObj8.CONST1}, CONST2: ${testObj8.CONST2}`, 'info');
+      log(`CONST1: ${TestObject8.CONST1}, CONST2: ${TestObject8.CONST2}`, 'info');
 
-      // Read initial properties
-      const prop1 = await testObj8.prop1.get();
-      const prop2 = await testObj8.prop2.get();
-      log(`Initial prop1: ${prop1}, prop2: ${prop2}`, 'info');
+      // Read initial properties via subscription
+      let prop1Val: number | undefined;
+      let prop2Val: string | undefined;
+      const unsubProp1 = testObj8.prop1.subscribe(v => prop1Val = v);
+      const unsubProp2 = testObj8.prop2.subscribe(v => prop2Val = v);
+      // Wait a bit for values to be fetched
+      await new Promise(resolve => setTimeout(resolve, 100));
+      log(`Initial prop1: ${prop1Val}, prop2: ${prop2Val}`, 'info');
+      unsubProp1.unsubscribe();
+      unsubProp2.unsubscribe();
 
       // Call method1 (sync)
       log('Calling method1(42)...', 'info');
@@ -240,7 +250,8 @@
       
       // Create TestObject
       log('Creating TestObject...', 'info');
-      const testObj = await window.TestObject.create();
+      const testObj = await TestObject.create();
+
       log(`TestObject created: ${testObj.handle}`, 'success');
 
       log('Running JSON deserialization benchmark (1000 iterations in C++)...', 'info');
@@ -270,7 +281,7 @@
       log('=== STARTING JSON ARRAY BENCHMARK ===', 'info');
       // Create TestObject
       log('Creating TestObject...', 'info');
-      const testObj = await window.TestObject.create();
+      const testObj = await TestObject.create() as TestObject;
       log(`TestObject created: ${testObj.handle}`, 'success');
 
       log('Running JSON array deserialization benchmark (1000 iterations in C++)...', 'info');
@@ -300,11 +311,12 @@
       
       // Create TestObject
       log('Creating TestObject...', 'info');
-      const testObj = await window.TestObject.create();
+      const testObj = await TestObject.create() as TestObject;
       log(`TestObject created: ${testObj.handle}`, 'success');
 
       const iterations = 1000;
       const warmupRuns = 50;
+      testObj.asyncProcess('f.a.b.');
 
       // ===== SYNC BENCHMARK =====
       log(`\n--- Sync Benchmark (${iterations} iterations) ---`, 'info');
@@ -450,12 +462,12 @@
           </div>
           <div class="property">
             <span class="property-label">status:</span>
-            <span class="value status-{$status ? $status.toLowerCase() : 'idle'}">{$status || 'Idle'}</span>
+            <span class="value status-{($status as any)?.toLowerCase?.() || 'idle'}">{$status as any || 'Idle'}</span>
           </div>
           {#if $pod}
           <div class="property">
             <span class="property-label">pod:</span>
-            <span class="value">{`{ a: ${$pod.a}, b: ${$pod.b} }`}</span>
+            <span class="value">{`{ a: ${($pod as any).a}, b: ${($pod as any).b} }`}</span>
           </div>
           {/if}
         {:else}

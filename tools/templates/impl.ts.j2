@@ -6,7 +6,6 @@
 
 // Enums
 {% for enum in cls.enums %}
-{% if enum.is_enum_class %}
 export namespace {{ cls.name }} {
   export enum {{ enum.name }} {
 {% for value in enum.enum_values %}
@@ -14,17 +13,10 @@ export namespace {{ cls.name }} {
 {% endfor %}
   }
 }
-{% else %}
-export enum {{ cls.name }} {
-{% for value in enum.enum_values %}
-  {{ value }} = "{{ value }}"{{ "," if not loop.last }}
-{% endfor %}
-}
-{% endif %}
 {% endfor %}
 
 export interface {{ cls.name }} {
-  handle: string;
+  readonly handle: string;
 
   // Properties (Svelte Store compatible)
 {% for prop in cls.properties %}
