@@ -148,8 +148,10 @@ function(webbridge_generate)
 
 		# Determine output file, template and python args based on LANGUAGE
 		if(arg_LANGUAGE STREQUAL "cpp")
-			set(output_file "${arg_OUTPUT_DIR}/${class_name}_registration.h")
-			set(template_file "${CMAKE_SOURCE_DIR}/tools/templates/registration.h.j2")
+			set(output_h_file "${arg_OUTPUT_DIR}/${class_name}_registration.h")
+			set(output_cpp_file "${arg_OUTPUT_DIR}/${class_name}_registration.cpp")
+			set(template_h_file "${CMAKE_SOURCE_DIR}/tools/templates/registration_header.h.j2")
+			set(template_cpp_file "${CMAKE_SOURCE_DIR}/tools/templates/registration_impl.cpp.j2")
 			set(python_out_arg --cpp_out)
 		elseif(arg_LANGUAGE STREQUAL "ts-impl")
 			set(output_file "${arg_OUTPUT_DIR}/${class_name}.ts")
@@ -160,28 +162,55 @@ function(webbridge_generate)
 		endif()
 
 		message(STATUS "Generating ${arg_LANGUAGE} for ${file} -> ${class_name}")
-		add_custom_command(
-			OUTPUT ${output_file}
-			COMMAND ${Python_EXECUTABLE}
-			ARGS
-			${CMAKE_SOURCE_DIR}/tools/generate.py
-			${file}
-			--class-name ${class_name}
-			${python_out_arg} ${arg_OUTPUT_DIR}
-		DEPENDS
-			${CMAKE_SOURCE_DIR}/tools/generate.py
-				${CMAKE_SOURCE_DIR}/tools/parser.py
-				${CMAKE_SOURCE_DIR}/tools/tstypes.py
-				${template_file}
-				${file}
-			COMMENT "Running webbridge registration on ${file} (${class_name}) for ${arg_LANGUAGE}"
-			VERBATIM
-		)
-
-		# Add C++ registration header to target sources
+		
 		if(arg_LANGUAGE STREQUAL "cpp")
-			set_source_files_properties(${output_file} PROPERTIES GENERATED TRUE)
-			target_sources(${arg_TARGET} PRIVATE ${output_file})
+			# For C++, generate both .h and .cpp files
+			add_custom_command(
+				OUTPUT ${output_h_file} ${output_cpp_file}
+				COMMAND ${Python_EXECUTABLE}
+				ARGS
+				${CMAKE_SOURCE_DIR}/tools/generate.py
+				${file}
+				--class-name ${class_name}
+				${python_out_arg} ${arg_OUTPUT_DIR}
+			DEPENDS
+				${CMAKE_SOURCE_DIR}/tools/generate.py
+					${CMAKE_SOURCE_DIR}/tools/parser.py
+					${CMAKE_SOURCE_DIR}/tools/tstypes.py
+					${template_h_file}
+					${template_cpp_file}
+					${file}
+				COMMENT "Running webbridge registration on ${file} (${class_name}) for ${arg_LANGUAGE}"
+				VERBATIM
+			)
+
+			# Add both .h and .cpp to target sources
+			set_source_files_properties(${output_h_file} PROPERTIES GENERATED TRUE)
+			set_source_files_properties(${output_cpp_file} PROPERTIES GENERATED TRUE)
+			target_sources(${arg_TARGET} PRIVATE ${output_h_file} ${output_cpp_file})
+			
+			# Add generated header directory to include path
+			get_filename_component(gen_header_dir ${output_h_file} DIRECTORY)
+			target_include_directories(${arg_TARGET} PRIVATE ${gen_header_dir})
+		else()
+			# For TypeScript, generate single file
+			add_custom_command(
+				OUTPUT ${output_file}
+				COMMAND ${Python_EXECUTABLE}
+				ARGS
+				${CMAKE_SOURCE_DIR}/tools/generate.py
+				${file}
+				--class-name ${class_name}
+				${python_out_arg} ${arg_OUTPUT_DIR}
+			DEPENDS
+				${CMAKE_SOURCE_DIR}/tools/generate.py
+					${CMAKE_SOURCE_DIR}/tools/parser.py
+					${CMAKE_SOURCE_DIR}/tools/tstypes.py
+					${template_file}
+					${file}
+				COMMENT "Running webbridge registration on ${file} (${class_name}) for ${arg_LANGUAGE}"
+				VERBATIM
+			)
 		endif()
 	endforeach()
 endfunction()

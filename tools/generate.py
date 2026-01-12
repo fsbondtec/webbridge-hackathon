@@ -80,12 +80,25 @@ _JINJA_ENV = _setup_jinja_env()
 # Code-Generatoren (Funktionen)
 # =============================================================================
 
-def generate_registration(cls: ClassInfo, header_path: str) -> str:
-    """Generiert die C++ _registration.h Datei."""
+def generate_registration_header(cls: ClassInfo, header_path: str) -> str:
+    """Generiert die C++ _registration.h Header-Datei."""
     try:
-        template = _JINJA_ENV.get_template("registration.h.j2")
+        template = _JINJA_ENV.get_template("registration_header.h.j2")
     except Exception as e:
-        raise FileNotFoundError(f"Konnte Template 'registration.h.j2' nicht laden: {e}") from e
+        raise FileNotFoundError(f"Konnte Template 'registration_header.h.j2' nicht laden: {e}") from e
+
+    return template.render(
+        cls=cls,
+        header_path=Path(header_path).name,
+    )
+
+
+def generate_registration_impl(cls: ClassInfo, header_path: str) -> str:
+    """Generiert die C++ _registration.cpp Implementierungs-Datei."""
+    try:
+        template = _JINJA_ENV.get_template("registration_impl.cpp.j2")
+    except Exception as e:
+        raise FileNotFoundError(f"Konnte Template 'registration_impl.cpp.j2' nicht laden: {e}") from e
 
     return template.render(
         cls=cls,
@@ -189,11 +202,20 @@ def main():
         if args.cpp_out:
             cpp_out_path = Path(args.cpp_out)
             cpp_out_path.mkdir(parents=True, exist_ok=True)
-            reg_output = cpp_out_path / f"{cls.name}_registration.h"
-            reg_code = generate_registration(cls, input_path)
-            with open(reg_output, 'w', encoding='utf-8') as f:
-                f.write(reg_code)
-            print(f"  [OK] Generiert: {reg_output}")
+            
+            # Header generieren
+            reg_header_output = cpp_out_path / f"{cls.name}_registration.h"
+            reg_header_code = generate_registration_header(cls, input_path)
+            with open(reg_header_output, 'w', encoding='utf-8') as f:
+                f.write(reg_header_code)
+            print(f"  [OK] Generiert: {reg_header_output}")
+            
+            # Implementation generieren
+            reg_impl_output = cpp_out_path / f"{cls.name}_registration.cpp"
+            reg_impl_code = generate_registration_impl(cls, input_path)
+            with open(reg_impl_output, 'w', encoding='utf-8') as f:
+                f.write(reg_impl_code)
+            print(f"  [OK] Generiert: {reg_impl_output}")
 
         # TypeScript Type Definitionen generieren (falls --ts_out angegeben)
         if args.ts_out:
