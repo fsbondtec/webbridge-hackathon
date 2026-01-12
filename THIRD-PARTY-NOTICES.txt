@@ -39,12 +39,6 @@ C++ DEPENDENCIES (via Conan)
    License: WTFPL / MIT License
    Copyright: Sam Hocevar
 
-7. magic_enum - Static reflection for enums (to string, from string, iteration)
-   https://github.com/Neargye/magic_enum
-   Version: 0.9.7
-   License: MIT License
-   Copyright: Daniil Goncharov
-
 ===============================================================================
 
 CMAKE DEPENDENCIES (via FetchContent)
