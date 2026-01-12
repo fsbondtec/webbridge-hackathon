@@ -3,7 +3,7 @@
 
 This repository is a demonstration project created during the fsbondtec [Christmas Hackathon 2025](https://www.fsbondtec.at/).
 
-C++ objects are seamlessly integrated into modern web applications as an alternative to **Qt**. The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromium) and a **Python code generator** that uses **tree-sitter** to analyze C++ classes and automatically generate JavaScript bindings and TypeScript type definitions. Code generation is required because C++26 reflection is not yet available.
+C++ objects are seamlessly integrated into modern web applications as a modern **Qt alternative** for web-based UIs. While Qt uses QML/Qt Quick or Qt WebEngine for GUI development, WebBridge leverages standard web technologies. The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromium) and a **Python code generator** that uses **tree-sitter** to analyze C++ classes and automatically generate JavaScript bindings and TypeScript type definitions. Code generation is required because C++26 reflection is not yet available.
 
 ## Getting Started
 
@@ -79,10 +79,13 @@ build\Release\webbridge_hackathon.exe
 
 Every class to be exposed to the web must inherit from `webbridge::object`. The API is inspired by Qt and provides the following mechanisms for JavaScript integration:
 
-* **Methods** – Public C++ methods are automatically available in JavaScript
-* **Properties** – Exposed as Svelte-compatible stores (read-only)
-* **Events** – Trigger custom event listeners in JavaScript
+* **Methods** – Public C++ methods are automatically available in JavaScript (similar to Qt's Q_INVOKABLE)
+* **Properties** – Exposed as Svelte-compatible stores (read-only, inspired by Qt's Q_PROPERTY)
+* **Events** – Trigger custom event listeners in JavaScript (equivalent to Qt signals)
 * **Constants** - Readonly JS values
+
+The automatically generated code is functionally inspired by Qt and Qt's MOC (Meta-Object Compiler), but the WebBridge classes require significantly less boilerplate code than their Qt equivalents.
+
 ### Methods
 
 All public methods of a `webbridge::object` class are automatically published to JavaScript.
