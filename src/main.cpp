@@ -1,4 +1,3 @@
-#pragma once
 
 #include "TestObject_registration.h"
 #include "TestObject1_registration.h"
