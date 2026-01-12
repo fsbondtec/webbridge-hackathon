@@ -23,4 +23,3 @@ FetchContent_MakeAvailable(cmrc)
 
 add_subdirectory(frontend)
 add_subdirectory(src)
-set_directory_properties(PROPERTIES VS_STARTUP_PROJECT webbridge_hackathon)

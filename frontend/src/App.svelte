@@ -387,313 +387,166 @@
   });
 </script>
 
-<main>
-  <div class="container">
-    <h1>🌉 WebBridge Svelte Demo</h1>
-
-    <div class="status-bar">
-      <div class="status-indicator" class:active={obj !== null}></div>
-      <span>{obj ? 'Object active' : 'No object'}</span>
-    </div>
-
-    <!-- Control Buttons -->
-    <div class="controls">
-      <button on:click={createObject} disabled={obj !== null}>
-        Create Object
-      </button>
-      <button on:click={destroyObject} disabled={obj === null}>
-        Destroy Object
-      </button>
-      <button on:click={callBar} disabled={obj === null}>
-        Call bar()
-      </button>
-      <button on:click={callFoo} disabled={obj === null}>
-        Call foo()
-      </button>
-      <button on:click={callFile} disabled={obj === null}>
-        Call file()
-      </button>
-      <button on:click={callTestVectors} disabled={obj === null}>
-        Test Vectors
-      </button>
-      <button on:click={callThrowError} disabled={obj === null} class="error-btn">
-        Throw Error 💥
-      </button>
-      <button on:click={callMultiParamTest} disabled={obj === null}>
-        Test Multi-Params 🎯
-      </button>
-      <button on:click={clearLog}>
-        Clear Log
-      </button>
-      <button on:click={runBenchmark} class="benchmark-btn">
-        🚀 Run Benchmark (TestObject)
-      </button>
-      <button on:click={runJsonBenchmark} class="benchmark-btn">
-        📊 Run JSON Benchmark
-      </button>
-      <button on:click={runJsonBenchmark2} class="benchmark-btn">
-        📊 Run JSON Array Benchmark
-      </button>
-      <button on:click={testTestObject8} class="test-btn">
-        🧪 Test TestObject8
-      </button>
-    </div>
-
-    <!-- Property Display - Reactive via WebBridge Stores! -->
-    <div class="properties">
-      <h2>Properties (auto-synced via WebBridge)</h2>
-      <div class="property-grid">
-        {#if obj && aBool && strProp && counter && numbers && status && pod}
-          <div class="property">
-            <span class="property-label">aBool:</span>
-            <span class="value">{$aBool}</span>
-          </div>
-          <div class="property">
-            <span class="property-label">strProp:</span>
-            <span class="value">{$strProp || '(empty)'}</span>
-          </div>
-          <div class="property">
-            <span class="property-label">counter:</span>
-            <span class="value">{$counter}</span>
-          </div>
-          <div class="property">
-            <span class="property-label">numbers:</span>
-            <span class="value">[{$numbers ? $numbers.join(', ') : ''}]</span>
-          </div>
-          <div class="property">
-            <span class="property-label">status:</span>
-            <span class="value status-{($status as any)?.toLowerCase?.() || 'idle'}">{$status as any || 'Idle'}</span>
-          </div>
-          {#if $pod}
-          <div class="property">
-            <span class="property-label">pod:</span>
-            <span class="value">{`{ a: ${($pod as any).a}, b: ${($pod as any).b} }`}</span>
-          </div>
+<div class="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-800 p-5">
+  <div class="max-w-5xl mx-auto">
+    <!-- Hero Section -->
+    <div class="card bg-base-100 shadow-2xl mb-6">
+      <div class="card-body">
+        <h1 class="card-title text-4xl font-bold text-center justify-center mb-4">
+          🌉 WebBridge Svelte Demo
+        </h1>
+        
+        <!-- Status Badge -->
+        <div class="flex justify-center mb-4">
+          {#if obj !== null}
+            <div class="badge badge-success badge-lg gap-2">
+              <div class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+              Object active
+            </div>
+          {:else}
+            <div class="badge badge-neutral badge-lg gap-2">
+              <div class="w-3 h-3 rounded-full bg-gray-400"></div>
+              No object
+            </div>
           {/if}
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="flex flex-wrap gap-2 justify-center">
+          <button class="btn btn-primary" on:click={createObject} disabled={obj !== null}>
+            Create Object
+          </button>
+          <button class="btn btn-secondary" on:click={destroyObject} disabled={obj === null}>
+            Destroy Object
+          </button>
+          <button class="btn btn-accent" on:click={callBar} disabled={obj === null}>
+            Call bar()
+          </button>
+          <button class="btn btn-accent" on:click={callFoo} disabled={obj === null}>
+            Call foo()
+          </button>
+          <button class="btn btn-accent" on:click={callFile} disabled={obj === null}>
+            Call file()
+          </button>
+          <button class="btn btn-accent" on:click={callTestVectors} disabled={obj === null}>
+            Test Vectors
+          </button>
+          <button class="btn btn-error" on:click={callThrowError} disabled={obj === null}>
+            Throw Error 💥
+          </button>
+          <button class="btn btn-info" on:click={callMultiParamTest} disabled={obj === null}>
+            Test Multi-Params 🎯
+          </button>
+          <button class="btn btn-ghost" on:click={clearLog}>
+            Clear Log
+          </button>
+          <button class="btn btn-warning font-bold" on:click={runBenchmark}>
+            🚀 Run Benchmark (TestObject)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Properties Section -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+      <div class="card-body">
+        <h2 class="card-title text-2xl">Properties (auto-synced via WebBridge)</h2>
+        
+        {#if obj && aBool && strProp && counter && numbers && status && pod}
+          <div class="grid gap-3">
+            <div class="stats shadow">
+              <div class="stat">
+                <div class="stat-title">aBool</div>
+                <div class="stat-value text-primary text-2xl">{$aBool}</div>
+              </div>
+            </div>
+            
+            <div class="stats shadow">
+              <div class="stat">
+                <div class="stat-title">strProp</div>
+                <div class="stat-value text-secondary text-2xl font-mono">{$strProp || '(empty)'}</div>
+              </div>
+            </div>
+            
+            <div class="stats shadow">
+              <div class="stat">
+                <div class="stat-title">counter</div>
+                <div class="stat-value text-accent text-2xl">{$counter}</div>
+              </div>
+            </div>
+            
+            <div class="stats shadow">
+              <div class="stat">
+                <div class="stat-title">numbers</div>
+                <div class="stat-value text-xl font-mono">[{$numbers ? $numbers.join(', ') : ''}]</div>
+              </div>
+            </div>
+            
+            <div class="stats shadow">
+              <div class="stat">
+                <div class="stat-title">status</div>
+                <div class="stat-value text-xl">
+                  {#if $status === 'Idle'}
+                    <span class="text-gray-500">{$status}</span>
+                  {:else if $status === 'Running'}
+                    <span class="text-warning">{$status}</span>
+                  {:else if $status === 'Completed'}
+                    <span class="text-success">{$status}</span>
+                  {:else if $status === 'Error'}
+                    <span class="text-error">{$status}</span>
+                  {:else}
+                    <span>{$status || 'Idle'}</span>
+                  {/if}
+                </div>
+              </div>
+            </div>
+            
+            {#if $pod}
+            <div class="stats shadow">
+              <div class="stat">
+                <div class="stat-title">pod</div>
+                <div class="stat-value text-xl font-mono">{`{ a: ${$pod.a}, b: ${$pod.b} }`}</div>
+              </div>
+            </div>
+            {/if}
+          </div>
         {:else}
-          <p>No object created yet.</p>
+          <div class="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info shrink-0 w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>No object created yet.</span>
+          </div>
         {/if}
       </div>
     </div>
 
-    <!-- Image Display -->
-    <div class="image-section">
-      <h2>🖼️ Embedded Image</h2>
-      <img src={bildUrl} alt="Beispielbild" class="demo-image" />
-      <p class="info-text">This image is bundled with the app and served from embedded resources.</p>
+    <!-- Image Section -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+      <div class="card-body">
+        <h2 class="card-title text-2xl">🖼️ Embedded Image</h2>
+        <figure>
+          <img src={bildUrl} alt="Beispielbild" class="rounded-lg shadow-lg" />
+        </figure>
+        <div class="alert alert-info mt-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>This image is bundled with the app and served from embedded resources.</span>
+        </div>
+      </div>
     </div>
 
     <!-- Log Section -->
-    <div class="log-section">
-      <h2>Console Log</h2>
-      <div class="log-output">
-        {#each logs as logEntry}
-          <div class="log-entry">{logEntry}</div>
-        {/each}
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title text-2xl">Console Log</h2>
+        <div class="mockup-code max-h-96 overflow-y-auto">
+          {#each logs as logEntry}
+            <pre data-prefix=">" class="text-sm"><code>{logEntry}</code></pre>
+          {/each}
+        </div>
       </div>
     </div>
   </div>
-</main>
-
-<style>
-  :global(body) {
-    margin: 0;
-    padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-
-  main {
-    min-height: 100vh;
-    padding: 20px;
-  }
-
-  .container {
-    max-width: 900px;
-    margin: 0 auto;
-    background: white;
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  }
-
-  h1 {
-    text-align: center;
-    color: #333;
-    margin-bottom: 20px;
-  }
-
-  .status-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 15px;
-    background: #f5f5f5;
-    border-radius: 8px;
-    margin-bottom: 20px;
-  }
-
-  .status-indicator {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #ccc;
-    transition: background 0.3s;
-  }
-
-  .status-indicator.active {
-    background: #00ff00;
-    box-shadow: 0 0 10px #00ff00;
-  }
-
-  .controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-
-  button {
-    padding: 10px 20px;
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.3s;
-  }
-
-  button:hover:not(:disabled) {
-    background: #5568d3;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  }
-
-  button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  .error-btn {
-    background: #e91e63;
-  }
-
-  .error-btn:hover:not(:disabled) {
-    background: #c2185b;
-  }
-
-  .benchmark-btn {
-    background: #ff9800;
-    font-weight: bold;
-  }
-
-  .benchmark-btn:hover {
-    background: #f57c00;
-  }
-
-  .test-btn {
-    background: #00bcd4;
-    font-weight: bold;
-  }
-
-  .test-btn:hover {
-    background: #0097a7;
-  }
-
-  .properties {
-    background: #f9f9f9;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-  }
-
-  .properties h2 {
-    margin-top: 0;
-    color: #333;
-    font-size: 18px;
-  }
-
-  .info-text {
-    margin-top: 15px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.7);
-    border-radius: 6px;
-    font-size: 13px;
-    color: #555;
-  }
-
-  .property-grid {
-    display: grid;
-    gap: 12px;
-  }
-
-  .property {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    background: white;
-    border-radius: 6px;
-    border-left: 3px solid #667eea;
-  }
-
-  .property .property-label {
-    font-weight: 600;
-    color: #555;
-  }
-
-  .property .value {
-    color: #333;
-    font-family: 'Courier New', monospace;
-  }
-
-  .value.status-idle { color: #888; }
-  .value.status-running { color: #ff9800; }
-  .value.status-completed { color: #4caf50; }
-  .value.status-error { color: #f44336; }
-
-  .image-section {
-    margin-top: 20px;
-  }
-
-  .image-section h2 {
-    margin-top: 0;
-    color: #333;
-    font-size: 18px;
-  }
-
-  .demo-image {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin: 10px 0;
-  }
-
-  .log-section {
-    margin-top: 20px;
-  }
-
-  .log-section h2 {
-    margin-top: 0;
-    color: #333;
-    font-size: 18px;
-  }
-
-  .log-output {
-    background: #1e1e1e;
-    color: #d4d4d4;
-    padding: 15px;
-    border-radius: 6px;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-
-  .log-entry {
-    margin-bottom: 5px;
-    line-height: 1.5;
-  }
-</style>
+</div>

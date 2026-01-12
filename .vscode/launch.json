@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug (MSVC)",
+            "name": "Debug",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/Debug/webbridge_hackathon.exe",
@@ -11,7 +11,11 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "console": "integratedTerminal",
-            "preLaunchTask": "Build Debug"
+            "preLaunchTask": "Build: Debug",
+            "symbolSearchPath": "${workspaceFolder}/build/src/Debug",
+            "sourceFileMap": {
+                "/build/": "${workspaceFolder}/"
+            }
         },
         {
             "name": "Release",
@@ -23,7 +27,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "console": "integratedTerminal",
-            "preLaunchTask": "Build Release"
+            "preLaunchTask": "Build: Release"
         }
     ]
 }
