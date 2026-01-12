@@ -21,7 +21,7 @@
 #include "property_impl.h"
 #include "event_impl.h"
 #include "concepts.h"
-#include "../Object.h"
+#include "../object.h"
 #include "../Error.h"
 
 namespace webbridge::impl {
