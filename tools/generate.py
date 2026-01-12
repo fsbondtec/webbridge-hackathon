@@ -6,12 +6,12 @@ Generiert _registration.h Dateien aus explizit angegebenen C++ Klassen.
 Nutzt tree-sitter für schnelles C++ AST-Parsing und Jinja2 für Template-Rendering.
 
 Verwendung:
-    python generate.py <input.h> --class-name <ClassName> --cpp_out=<dir> --ts_out=<dir>
+    python generate.py <input.h> --class-name <ClassName> --cpp_out=<dir> --ts_impl_out=<dir>
 
 Beispiel:
     python generate.py ../src/MyObject.h --class-name MyObject --cpp_out=../build/src
-    python generate.py ../src/MyObject.h --class-name MyObject --ts_out=../frontend/src
-    python generate.py ../src/MyObject.h --class-name MyObject --cpp_out=../build/src --ts_out=../frontend/src
+    python generate.py ../src/MyObject.h --class-name MyObject --ts_impl_out=../frontend/src
+    python generate.py ../src/MyObject.h --class-name MyObject --cpp_out=../build/src --ts_impl_out=../frontend/src
 
 Voraussetzungen:
     pip install tree-sitter tree-sitter-cpp jinja2
@@ -144,7 +144,7 @@ def main():
         input_path: Eingabe-Header-Datei (.h)
         class_name: Name der zu verarbeitenden Klasse
         cpp_out: Ausgabe-Ordner für C++ Registration (optional)
-        ts_out: Ausgabe-Ordner für TypeScript Types (optional)
+        ts_impl_out: Ausgabe-Ordner für TypeScript Implementierung (optional)
 
     Exit Codes:
         0: Erfolgreich
@@ -158,7 +158,6 @@ def main():
     parser.add_argument('input_path', help='Eingabe-Header-Datei (.h)')
     parser.add_argument('--class-name', required=True, help='Name der zu verarbeitenden Klasse')
     parser.add_argument('--cpp_out', type=str, help='Ausgabe-Ordner für C++ Registration Header')
-    parser.add_argument('--ts_out', type=str, help='Ausgabe-Ordner für TypeScript Type Definitionen')
     parser.add_argument('--ts_impl_out', type=str, help='Ausgabe-Ordner für TypeScript Implementierung')
     parser.add_argument('--verbose', '-v', action='store_true', help='Zeige detaillierte Ausgaben')
 
@@ -171,8 +170,8 @@ def main():
         print(f"Fehler: Datei nicht gefunden: {input_path}", file=sys.stderr)
         sys.exit(1)
 
-    if not args.cpp_out and not args.ts_out and not args.ts_impl_out:
-        print("Fehler: Mindestens --cpp_out, --ts_out oder --ts_impl_out muss angegeben werden", file=sys.stderr)
+    if not args.cpp_out and not args.ts_impl_out:
+        print("Fehler: Mindestens --cpp_out oder --ts_impl_out muss angegeben werden", file=sys.stderr)
         sys.exit(1)
 
     if args.verbose:
@@ -221,17 +220,6 @@ def main():
                 f.write(reg_impl_code)
             if args.verbose:
                 print(f"  [OK] Generiert: {reg_impl_output}")
-
-        # TypeScript Type Definitionen generieren (falls --ts_out angegeben)
-        if args.ts_out:
-            ts_out_path = Path(args.ts_out)
-            ts_out_path.mkdir(parents=True, exist_ok=True)
-            ts_output = ts_out_path / f"{cls.name}.types.d.ts"
-            ts_code = generate_typescript_types(cls, input_path)
-            with open(ts_output, 'w', encoding='utf-8') as f:
-                f.write(ts_code)
-            if args.verbose:
-                print(f"  [OK] Generiert: {ts_output}")
 
         # TypeScript Implementierung generieren (falls --ts_impl_out angegeben)
         if args.ts_impl_out:
