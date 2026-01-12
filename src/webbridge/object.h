@@ -50,7 +50,7 @@ inline void set_thread_pool_size(size_t num_threads) {
  * Gibt die konfigurierte Thread-Pool-Größe zurück.
  */
 inline size_t get_thread_pool_size() {
-	return get_thread_pool_size();
+	return impl::get_thread_pool_size();
 }
 
 }
