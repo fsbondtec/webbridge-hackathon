@@ -6,13 +6,10 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
-
-
 struct Pod { 
 	unsigned a; unsigned long long b; 
 	auto operator<=>(const Pod&) const = default;
 };
-
 
 inline void to_json(nlohmann::json& j, const Pod& p) {
 	j = nlohmann::json{{"a", p.a}, {"b", p.b}};
@@ -33,25 +30,6 @@ public:
 		Error
 	};
 
-
-//  Q_PROPERTY(bool READ aBool WRITE setABool NOTIFY aBoolChanged)
-//  void aBool() const {
-//		return _aBool;
-//	}
-//	void setABool(bool v) {
-//		if (v != _aBool) {
-//			_aBool = v;
-//			emit aBoolChanged();
-//		}
-//	}
-// signals:
-//	void aBoolChanged();
-// private:
-//  bool _aBool;
-
-
-	// prop<bool>
-	// event<>
 	property<bool> aBool;
 	property<std::string> strProp;
 	property<int> counter{ 0 };
@@ -60,7 +38,6 @@ public:
 	property<Pod> pod{ Pod{0,0} };
 	event<int, bool> aEvent;
 
-	// konstanten
 	const std::string version;
 	static inline const std::string appversion{"myapp 1.0"};
 	static inline constexpr unsigned CPP_VERSION{23};
@@ -89,7 +66,4 @@ public:
 		Status statusValue,
 		const Pod& podValue
 	);
-
-private:
-
 };

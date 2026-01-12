@@ -5,41 +5,6 @@ message(STATUS "Found npm: ${NPM_EXECUTABLE}")
 set(WEBBRIDGE_HEADER_FILES
 	${CMAKE_SOURCE_DIR}/src/MyObject.h
 	${CMAKE_SOURCE_DIR}/src/TestObject.h
-	${CMAKE_SOURCE_DIR}/src/TestObject1.h
-	${CMAKE_SOURCE_DIR}/src/TestObject2.h
-	${CMAKE_SOURCE_DIR}/src/TestObject3.h
-	${CMAKE_SOURCE_DIR}/src/TestObject4.h
-	${CMAKE_SOURCE_DIR}/src/TestObject5.h
-	${CMAKE_SOURCE_DIR}/src/TestObject6.h
-	${CMAKE_SOURCE_DIR}/src/TestObject7.h
-	${CMAKE_SOURCE_DIR}/src/TestObject8.h
-	${CMAKE_SOURCE_DIR}/src/TestObject9.h
-	${CMAKE_SOURCE_DIR}/src/TestObject10.h
-	${CMAKE_SOURCE_DIR}/src/TestObject11.h
-	${CMAKE_SOURCE_DIR}/src/TestObject12.h
-	${CMAKE_SOURCE_DIR}/src/TestObject13.h
-	${CMAKE_SOURCE_DIR}/src/TestObject14.h
-	${CMAKE_SOURCE_DIR}/src/TestObject15.h
-	${CMAKE_SOURCE_DIR}/src/TestObject16.h
-	${CMAKE_SOURCE_DIR}/src/TestObject17.h
-	${CMAKE_SOURCE_DIR}/src/TestObject18.h
-	${CMAKE_SOURCE_DIR}/src/TestObject19.h
-	${CMAKE_SOURCE_DIR}/src/TestObject20.h
-	${CMAKE_SOURCE_DIR}/src/TestObject21.h
-	${CMAKE_SOURCE_DIR}/src/TestObject22.h
-	${CMAKE_SOURCE_DIR}/src/TestObject23.h
-	${CMAKE_SOURCE_DIR}/src/TestObject24.h
-	${CMAKE_SOURCE_DIR}/src/TestObject25.h
-	${CMAKE_SOURCE_DIR}/src/TestObject26.h
-	${CMAKE_SOURCE_DIR}/src/TestObject27.h
-	${CMAKE_SOURCE_DIR}/src/TestObject28.h
-	${CMAKE_SOURCE_DIR}/src/TestObject29.h
-	${CMAKE_SOURCE_DIR}/src/TestObject30.h
-	${CMAKE_SOURCE_DIR}/src/TestObject31.h
-	${CMAKE_SOURCE_DIR}/src/TestObject32.h
-	${CMAKE_SOURCE_DIR}/src/TestObject33.h
-	${CMAKE_SOURCE_DIR}/src/TestObject34.h
-	${CMAKE_SOURCE_DIR}/src/TestObject35.h
 )
 
 # Output to frontend/src/generated directory (gitignored)

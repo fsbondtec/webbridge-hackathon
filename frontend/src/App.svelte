@@ -2,7 +2,6 @@
   import { onMount, onDestroy } from 'svelte';
   import { MyObject } from './generated/MyObject';
   import { TestObject } from './generated/TestObject';
-  import { TestObject8 } from './generated/TestObject8';
   import bildUrl from './assets/bild.jpg';
 
   // State
@@ -197,112 +196,6 @@
     const stdev = Math.sqrt(variance);
 
     return { min, max, avg, stdev, total };
-  }
-
-  async function testTestObject8() {
-    try {
-      log('=== Testing TestObject8 ===', 'info');
-      
-      // Create TestObject8
-      log('Creating TestObject8...', 'info');
-      const testObj8 = await TestObject8.create();
-      log(`TestObject8 created: ${testObj8.handle}`, 'success');
-      // testObj8.handle = "futarschbeidl";
-      
-      // Log constants
-      log(`CONST1: ${TestObject8.CONST1}, CONST2: ${TestObject8.CONST2}`, 'info');
-
-      // Read initial properties via subscription
-      let prop1Val: number | undefined;
-      let prop2Val: string | undefined;
-      const unsubProp1 = testObj8.prop1.subscribe(v => prop1Val = v);
-      const unsubProp2 = testObj8.prop2.subscribe(v => prop2Val = v);
-      // Wait a bit for values to be fetched
-      await new Promise(resolve => setTimeout(resolve, 100));
-      log(`Initial prop1: ${prop1Val}, prop2: ${prop2Val}`, 'info');
-      unsubProp1.unsubscribe();
-      unsubProp2.unsubscribe();
-
-      // Call method1 (sync)
-      log('Calling method1(42)...', 'info');
-      const result1 = await testObj8.method1(42);
-      log(`method1(42) returned: ${result1}`, 'success');
-
-      // Call method2 (async)
-      log('Calling method2("Hello")...', 'info');
-      const result2 = await testObj8.method2("Hello");
-      log(`method2("Hello") returned: ${result2}`, 'success');
-
-      // Cleanup
-      log('Destroying TestObject8...', 'info');
-      testObj8.destroy();
-      log('TestObject8 destroyed', 'success');
-      log('=== TestObject8 test complete ===', 'success');
-
-    } catch (error) {
-      log(`TestObject8 test failed: ${error}`, 'error');
-    }
-  }
-
-  async function runJsonBenchmark() {
-    try {
-      log('=== STARTING JSON BENCHMARK ===', 'info');
-      
-      // Create TestObject
-      log('Creating TestObject...', 'info');
-      const testObj = await TestObject.create();
-
-      log(`TestObject created: ${testObj.handle}`, 'success');
-
-      log('Running JSON deserialization benchmark (1000 iterations in C++)...', 'info');
-      const start = performance.now();
-      const cppDuration = await testObj.jsonBench();
-      const jsOverhead = performance.now() - start;
-      
-      log(`JSON Benchmark Results:`, 'success');
-      log(`  C++ Time: ${cppDuration.toFixed(3)} ms`, 'info');
-      log(`  JS Overhead: ${(jsOverhead - cppDuration).toFixed(3)} ms`, 'info');
-      log(`  Total (JS->C++->JS): ${jsOverhead.toFixed(3)} ms`, 'info');
-      log(`  Per iteration (C++): ${(cppDuration / 1000).toFixed(3)} ms (${(cppDuration).toFixed(1)} µs)`, 'info');
-
-      // Cleanup
-      log('\nDestroying TestObject...', 'info');
-      testObj.destroy();
-      log('TestObject destroyed', 'success');
-      log('=== JSON BENCHMARK COMPLETE ===', 'success');
-
-    } catch (error) {
-      log(`JSON Benchmark failed: ${error}`, 'error');
-    }
-  }
-
-  async function runJsonBenchmark2() {
-    try {
-      log('=== STARTING JSON ARRAY BENCHMARK ===', 'info');
-      // Create TestObject
-      log('Creating TestObject...', 'info');
-      const testObj = await TestObject.create() as TestObject;
-      log(`TestObject created: ${testObj.handle}`, 'success');
-
-      log('Running JSON array deserialization benchmark (1000 iterations in C++)...', 'info');
-      const start = performance.now();
-      const cppDuration = await testObj.jsonBench2();
-      const jsOverhead = performance.now() - start;
-
-      log(`JSON Array Benchmark Results:`, 'success');
-      log(`  C++ Time: ${cppDuration.toFixed(3)} ms`, 'info');
-      log(`  JS Overhead: ${(jsOverhead - cppDuration).toFixed(3)} ms`, 'info');
-      log(`  Total (JS->C++->JS): ${jsOverhead.toFixed(3)} ms`, 'info');
-      log(`  Per iteration (C++): ${(cppDuration / 1000).toFixed(3)} ms (${(cppDuration).toFixed(1)} µs)`, 'info');
-
-      // Cleanup
-      log('\nDestroying TestObject...', 'info');
-      testObj.destroy();
-      log('TestObject destroyed', 'success');
-      log('=== JSON ARRAY BENCHMARK COMPLETE ===', 'success');
-    } catch (error) {
-      log(`JSON Array Benchmark failed: ${error}`, 'error');
-    }
   }
 
   async function runBenchmark() {
