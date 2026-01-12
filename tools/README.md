@@ -4,7 +4,7 @@ Code generation tools for the webbridge framework.
 
 ## generate.py
 
-Generates C++ registration headers (`_registration.h`) and/or TypeScript type definitions (`.types.d.ts`) from C++ header files that inherit from `webbridge::Object`.
+Generates C++ registration headers (`_registration.h`) and/or TypeScript type definitions (`.types.d.ts`) from C++ header files that inherit from `webbridge::object`.
 
 ### Prerequisites
 
@@ -29,18 +29,50 @@ python tools/generate.py src/MyObject.h --class-name MyObject --cpp_out=build/sr
 
 ### What is Detected
 
-- **Properties**: `Property<T>` fields
-- **Events**: `Event<Args...>` fields
+- **Properties**: `property<T>` fields
+- **Events**: `event<Args...>` fields
 - **Enums**: `enum` and `enum class` definitions
+- **Constants**: `const` and `static const`/`constexpr` fields (see below)
 - **Async Methods**: Methods with `[[async]]` attribute
 - **Sync Methods**: All other public methods
+
+### Constants
+
+Constants are automatically exposed to JavaScript with the following access patterns:
+
+**Instance constants** (e.g., `const std::string version;`):
+- Accessible only via object instance: `obj.version`
+- Fetched once at object creation
+
+**Static constants** (e.g., `static inline const std::string appversion;` or `static inline constexpr unsigned cppversion;`):
+- Accessible via type: `MyObject.cppversion`
+- Also accessible via instance for convenience: `obj.cppversion`
+- Fetched once at type registration
+
+Example:
+```cpp
+class MyObject : public webbridge::object {
+public:
+    const std::string version;                           // instance constant
+    static inline const std::string appversion{"1.0"};   // static constant
+    static inline constexpr unsigned cppversion{23};     // static constexpr
+};
+```
+
+JavaScript usage:
+```javascript
+const obj = await window.MyObject.create();
+console.log(obj.version);         // instance constant
+console.log(obj.cppversion);      // static via instance
+console.log(MyObject.cppversion); // static via type
+```
 
 ### CMake Integration
 
 Using the `webbridge_generate()` function from `cmake/webbridge.cmake`:
 
 #### Mode 1: AUTO Discovery (recommended)
-Automatically finds all classes that inherit from `webbridge::Object`:
+Automatically finds all classes that inherit from `webbridge::object`:
 
 ```cmake
 # Automatically process all .h/.hpp files in the target
@@ -100,12 +132,12 @@ webbridge_generate(
 
 Input (`MyObject.h`):
 ```cpp
-class MyObject : public webbridge::Object
+class MyObject : public webbridge::object
 {
 public:
-    Property<bool> aBool = false;
-    Property<std::string> strProp;
-    Event<int, bool> aEvent;
+    property<bool> a_bool = false;
+    property<std::string> str_prop;
+    event<int, bool> a_event;
 
     [[async]] void foo(std::string_view val);
     bool bar() const;
@@ -124,7 +156,7 @@ Output TypeScript (`MyObject.types.d.ts`):
 - Native bindings: `__MyObject_destroy`
 - Sync method binding: `__MyObject_bar`
 - Async method binding: `__MyObject_foo`
-- Property getters: `__get_MyObject_aBool`, `__get_MyObject_strProp`
+- Property getters: `__get_MyObject_a_bool`, `__get_MyObject_str_prop`
 - JavaScript class wrapper
 
 ## webbridge_parser.py
@@ -145,7 +177,7 @@ Used internally by `generate.py`.
 
 ## webbridge_discoverer.py
 
-Scans header files and finds all classes that inherit from `webbridge::Object`.
+Scans header files and finds all classes that inherit from `webbridge::object`.
 
 ### Usage
 

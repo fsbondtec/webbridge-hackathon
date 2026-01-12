@@ -2,7 +2,7 @@
 """
 webbridge Auto-Discovery Scanner
 
-Scannt C++ Header-Dateien und findet alle Klassen, die von webbridge::Object erben.
+Scannt C++ Header-Dateien und findet alle Klassen, die von webbridge::object erben.
 Wird von CMake aufgerufen, um automatisch Klassen für die Registrierung zu entdecken.
 
 Verwendung:
@@ -24,7 +24,7 @@ from tree_sitter import Parser, Language
 
 def find_webbridge_classes(header_file: str) -> List[str]:
     """
-    Findet alle Klassen in einer Header-Datei, die von webbridge::Object erben.
+    Findet alle Klassen in einer Header-Datei, die von webbridge::object erben.
 
     Args:
         header_file: Pfad zur Header-Datei
@@ -41,7 +41,8 @@ def find_webbridge_classes(header_file: str) -> List[str]:
             content = f.read()
 
         # Schneller String-Check (optimiert für CMake Performance)
-        if 'webbridge::Object' not in content:
+        # Supports both old PascalCase and new snake_case naming
+        if 'webbridge::Object' not in content and 'webbridge::object' not in content:
             return []
 
         # Falls String-Check positiv: Parse mit tree-sitter
@@ -65,7 +66,7 @@ def find_webbridge_classes(header_file: str) -> List[str]:
 
 def _find_class_names(node, content: str, class_names: List[str]):
     """
-    Rekursive Suche nach Klassennamen die von webbridge::Object erben
+    Rekursive Suche nach Klassennamen die von webbridge::object erben
 
     Args:
         node: AST-Knoten
@@ -82,10 +83,11 @@ def _find_class_names(node, content: str, class_names: List[str]):
                 class_name = content[child.start_byte:child.end_byte].strip()
             elif child.type == 'base_class_clause':
                 base_text = content[child.start_byte:child.end_byte]
-                if 'webbridge::Object' in base_text or 'Object' in base_text:
+                # Supports both old PascalCase and new snake_case naming
+                if 'webbridge::Object' in base_text or 'webbridge::object' in base_text or 'Object' in base_text or 'object' in base_text:
                     inherits_webbridge = True
 
-        # Nur hinzufügen wenn Name und webbridge::Object Vererbung vorhanden
+        # Nur hinzufügen wenn Name und webbridge::object Vererbung vorhanden
         if class_name and inherits_webbridge:
             class_names.append(class_name)
 

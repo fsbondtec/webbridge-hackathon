@@ -1,44 +1,15 @@
 #pragma once
 
-#include "webbridge/Object.h"
+#include "webbridge/object.h"
 
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
-#include <magic_enum/magic_enum.hpp>
-
-
-enum class Status {
-	Idle,
-	Running,
-	Completed,
-	Error
-};
-
-inline void to_json(nlohmann::json& j, const Status& e) {
-	j = std::string(magic_enum::enum_name(e));
-}
-
-inline void from_json(const nlohmann::json& j, Status& e) {
-	auto name = j.get<std::string>();
-	auto value = magic_enum::enum_cast<Status>(name);
-	if (value.has_value()) {
-		e = value.value();
-	}
-	else {
-		throw nlohmann::json::type_error::create(
-			302,
-			"Invalid enum value: '" + name + "' for type Status",
-			nullptr
-		);
-	}
-}
 
 struct Pod { 
 	unsigned a; unsigned long long b; 
 	auto operator<=>(const Pod&) const = default;
 };
-
 
 inline void to_json(nlohmann::json& j, const Pod& p) {
 	j = nlohmann::json{{"a", p.a}, {"b", p.b}};
@@ -49,18 +20,34 @@ inline void from_json(const nlohmann::json& j, Pod& p) {
 	j.at("b").get_to(p.b);
 }
 
-class MyObject : public webbridge::Object
+class MyObject : public webbridge::object
 {
 public:
-	Property<bool> aBool{ false };
-	Property<std::string> strProp;
-	Property<int> counter{ 0 };
-	Property<std::vector<int>> numbers;
-	Property<Status> status{ Status::Idle };
-	Property<Pod> pod{ Pod{0,0} };
-	Event<int, bool> aEvent;
+	enum class Status {
+		Idle,
+		Running,
+		Completed,
+		Error
+	};
+
+	property<bool> aBool;
+	property<std::string> strProp;
+	property<int> counter{ 0 };
+	property<std::vector<int>> numbers;
+	property<Status> status{ Status::Idle };
+	property<Pod> pod{ Pod{0,0} };
+	event<int, bool> aEvent;
+
+	const std::string version;
+	static inline const std::string appversion{"myapp 1.0"};
+	static inline constexpr unsigned CPP_VERSION{23};
 
 public:
+	explicit MyObject(const std::string& version_) : version(version_) {}
+	virtual ~MyObject() {
+		std::ignore = 6;
+	}
+
 	[[async]] void foo(const std::string& val);
 
 	bool bar();

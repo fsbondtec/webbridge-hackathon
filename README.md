@@ -3,18 +3,19 @@
 
 This repository is a demonstration project created during the fsbondtec [Christmas Hackathon 2025](https://www.fsbondtec.at/).
 
-C++ objects are seamlessly integrated into modern web applications as an alternative to **Qt**. The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromium) and a **Python code generator** that uses **tree-sitter** to analyze C++ classes and automatically generate JavaScript bindings and TypeScript type definitions. Code generation is required because C++26 reflection is not yet available.
+C++ objects are seamlessly integrated into modern web applications as a modern **Qt alternative** for web-based UIs. While Qt uses QML/Qt Quick or Qt WebEngine for GUI development, WebBridge leverages standard web technologies. The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromium) and a **Python code generator** (`tools/generate.py`) that uses **tree-sitter** to analyze C++ classes and automatically generate C++ registration headers and TypeScript type definitions. The build process automatically invokes the code generator via CMake, making the workflow seamless. Code generation is required because C++26 reflection is not yet available.
 
 ## Getting Started
 
 ### Prerequisites
 
-- **Visual Studio 2022** with C++ Desktop Development
+- **Visual Studio 2022** with C++ Desktop Development (MSVC compiler)
 - **Conan 2** (`pip install conan`)
 - **CMake 3.26+**
 - **Anaconda3** or Miniconda
 - **Node.js** (for frontend build)
 - **Microsoft Edge WebView2 Runtime** (usually preinstalled on Windows 10/11)
+- **Ninja** (included in conda environment)
 
 ### Setup
 
@@ -33,20 +34,21 @@ conda env update --file environment.yml --name webbridge_hackathon --prune
 The `configure.bat` script will:
 - Activate the Conda environment
 - Install C++ dependencies via Conan (fmt, nlohmann_json, httplib, portable-file-dialogs, etc.)
-- Generate CMake build configuration for all build types (Debug, Release, RelWithDebInfo, MinSizeRel)
+- Initialize MSVC environment for Ninja
+- Generate CMake build configuration with Ninja Multi-Config for all build types (Debug, Release, RelWithDebInfo, MinSizeRel)
 
 ```bash
 configure.bat
 ```
 
-Then open the Visual Studio solution:
+Then build with Ninja:
 
 ```bash
-# Open in Visual Studio:
-start build\webbridge_hackathon.sln
+# With MSVC environment (required for Ninja):
+cmd /c "build\generators\conanbuild.bat && cmake --build build --config Release"
+cmd /c "build\generators\conanbuild.bat && cmake --build build --config Debug"
 
-# Or build directly:
-cmake --build build --config Release
+# Or use VS Code tasks (Ctrl+Shift+B) - these load the environment automatically
 ```
 
 **3. Build the frontend**
@@ -67,23 +69,26 @@ After a successful build:
 
 ```bash
 # Debug build (with DevTools):
-build\Debug\webbridge_hackathon.exe
+build\src\Debug\webbridge_hackathon.exe
 
 # Release build (without DevTools):
-build\Release\webbridge_hackathon.exe
+build\src\Release\webbridge_hackathon.exe
 ```
 
 ## Concepts
 
-Every class to be exposed to the web must inherit from `WebBridge::Object`. The API is inspired by Qt and provides the following mechanisms for JavaScript integration:
+Every class to be exposed to the web must inherit from `webbridge::object`. The API is inspired by Qt and provides the following mechanisms for JavaScript integration:
 
-* **Methods** – Public C++ methods are automatically available in JavaScript
-* **Properties** – Exposed as Svelte-compatible stores (read-only)
-* **Events** – Trigger custom event listeners in JavaScript
+* **Methods** – Public C++ methods are automatically available in JavaScript (similar to Qt's Q_INVOKABLE)
+* **Properties** – Exposed as Svelte-compatible stores (read-only, inspired by Qt's Q_PROPERTY)
+* **Events** – Trigger custom event listeners in JavaScript (equivalent to Qt signals)
+* **Constants** - Readonly JS values
+
+The automatically generated code is functionally inspired by Qt and Qt's MOC (Meta-Object Compiler), but the WebBridge classes require significantly less boilerplate code than their Qt equivalents.
 
 ### Methods
 
-All public methods of a `WebBridge::Object` class are automatically published to JavaScript.
+All public methods of a `webbridge::object` class are automatically published to JavaScript.
 
 A function marked with the `[[async]]` attribute is executed in a separate worker thread. This prevents blocking the main thread on the C++ side. On the JavaScript side, both synchronous and asynchronous methods always return a `Promise` and never block the main thread.
 
@@ -94,6 +99,10 @@ Properties are similar to primitive data types but require access via the parent
 ### Events
 
 Events are the WebBridge equivalent of the Qt signal/slot mechanism.
+
+### Constants
+
+WebBridge supports exposing constants as both **static** (class-wide) and **non-static** (instance-specific). Both variants are automatically exported to JavaScript and are available there as read-only values.
 
 ### Error Handling
 
@@ -113,8 +122,8 @@ WebBridge implements robust error handling, distinguishing between JavaScript cl
 ```
 
 **Error codes:**
-- `4000-4999`: JavaScript errors (e.g., 4001 = TypeError during parameter deserialization)
-- `5000-5999`: C++ errors (e.g., 5000 = RuntimeError during runtime errors)
+- `4000-4999`: JavaScript errors (e.g., 4001 = JSON_PARSE_ERROR during parameter deserialization)
+- `5000-5999`: C++ errors (e.g., 5000 = RUNTIME_ERROR during runtime errors)
 
 Inspired by JSON-RPC 2.0, GraphQL, and HTTP status codes. Promises are automatically rejected on error, enabling clean exception handling with async/await syntax.
 
@@ -123,13 +132,16 @@ Inspired by JSON-RPC 2.0, GraphQL, and HTTP status codes. Promises are automatic
 The following example shows how to define a C++ class with methods, properties, and events for web integration with WebBridge.
 
 ```cpp
-#include "WebBridge/Object.h"
+#include "webbridge/object.h"
 
-class MyObject : public WebBridge::Object
+class MyObject : public webbridge::object
 {
-    Property<bool> aBool = false;
-    Property<std::string> strProp;
-    Event<int, bool> aEvent;
+public:
+    property<bool> aBool = false;
+    property<std::string> strProp;
+    event<int, bool> aEvent;
+    inline static constexpr auto PI = 3.141592654;
+    const std::string version = "1.0";
 
 public:
     [[async]] void foo(std::string_view val) {
@@ -188,7 +200,16 @@ myObj.aEvent.once((intValue, boolValue) => {
 });
 ```
 
-## Registration and Publish
+### Accessing Constants in JavaScript
+
+```js
+const myObj = await MyObject.create();
+console.log(myObj.version); // Instance constant: "1.0"
+console.log(MyObject.PI);   // Static constant: 3.141592654
+```
+
+
+## Registration
 
 To make C++ classes available in JavaScript, they must be explicitly registered. The code generator creates the necessary binding files, which are then included in CMake. In your `main.cpp`, you must call the generated registration function:
 
@@ -198,11 +219,7 @@ To make C++ classes available in JavaScript, they must be explicitly registered.
 
 int main() {
     // Register the class for JavaScript
-    webbridge::registerType<MyObject>();
-
-    // Optionally publish an instance to JavaScript
-    auto obj = std::make_shared<MyObject>();
-    webbridge::publishObject<MyObject>(nullptr, "myObject", obj);
+    webbridge::register_type<MyObject>();
 
     // ... initialize and run your webview ...
 }
@@ -210,11 +227,10 @@ int main() {
 
 ## Known Limitations
 
-The current implementation has the following limitations that are not yet supported:
+The current implementation has the following limitations:
 
-- **Multiple Constructors**: Classes with overloaded constructors are not supported. Only a single parameterless constructor is currently handled.
-- **Constructors with Parameters**: The code generator does not yet support constructors that take arguments. All objects must be instantiated using a default constructor.
-- **Enum Resolution in TypeScript**: C++ enums are not automatically converted to TypeScript enum types. They currently require manual type definitions in the frontend.
+- Overloaded constructors and methods are not supported.
+- Enums are automatically detected and exported to TypeScript, but complex enum use cases may require additional handling.
 
 ## License
 

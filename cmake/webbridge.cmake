@@ -88,7 +88,7 @@ function(webbridge_generate)
 		if(header_files)
 			execute_process(
 				COMMAND ${Python_EXECUTABLE}
-					${CMAKE_SOURCE_DIR}/tools/webbridge_discoverer.py
+				${CMAKE_SOURCE_DIR}/tools/discoverer.py
 					${header_files}
 				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 				OUTPUT_VARIABLE discoverer_output
@@ -97,7 +97,7 @@ function(webbridge_generate)
 			)
 
 			if(result AND NOT result EQUAL 0)
-				message(FATAL_ERROR "webbridge_discoverer.py failed with exit code ${result}")
+				message(FATAL_ERROR "discoverer.py failed with exit code ${result}")
 			endif()
 
 			# Parse output using helper function
@@ -113,7 +113,7 @@ function(webbridge_generate)
 
 		execute_process(
 			COMMAND ${Python_EXECUTABLE}
-				${CMAKE_SOURCE_DIR}/tools/webbridge_discoverer.py
+			${CMAKE_SOURCE_DIR}/tools/discoverer.py
 				${abs_files}
 			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 			OUTPUT_VARIABLE discoverer_output
@@ -122,7 +122,7 @@ function(webbridge_generate)
 		)
 
 		if(result AND NOT result EQUAL 0)
-			message(FATAL_ERROR "webbridge_discoverer.py failed with exit code ${result}")
+			message(FATAL_ERROR "discoverer.py failed with exit code ${result}")
 		endif()
 
 		# Parse output using helper function
@@ -132,56 +132,79 @@ function(webbridge_generate)
 	# Check if we have any files to process
 	if(NOT all_files)
 		if(arg_AUTO)
-			message(WARNING "webbridge_generate: No files with webbridge::Object classes found in target ${arg_TARGET}")
+			message(WARNING "webbridge_generate: No files with webbridge::object classes found in target ${arg_TARGET}")
 		else()
 			message(WARNING "webbridge_generate: No files to process")
 		endif()
 		return()
 	endif()
 
-	# Process each file|classname pair
+	# Prepare batch arguments and output files
+	set(batch_args)
+	set(all_output_files)
+	set(all_input_files)
+	
 	foreach(pair ${all_files})
 		# Split pair into file and class_name
 		string(REPLACE "|" ";" parts "${pair}")
 		list(GET parts 0 file)
 		list(GET parts 1 class_name)
-
-		# Determine output file, template and python args based on LANGUAGE
+		
+		# Add to batch arguments in format "file|classname"
+		list(APPEND batch_args "${file}|${class_name}")
+		list(APPEND all_input_files ${file})
+		
+		# Collect output files based on LANGUAGE
 		if(arg_LANGUAGE STREQUAL "cpp")
-			set(output_file "${arg_OUTPUT_DIR}/${class_name}_registration.h")
-			set(template_file "${CMAKE_SOURCE_DIR}/tools/templates/registration.h.j2")
-			set(python_out_arg --cpp_out)
-		elseif(arg_LANGUAGE STREQUAL "ts")
-			set(output_file "${arg_OUTPUT_DIR}/${class_name}.types.d.ts")
-			set(template_file "${CMAKE_SOURCE_DIR}/tools/templates/types.d.ts.j2")
-			set(python_out_arg --ts_out)
-		else()
-			message(FATAL_ERROR "Invalid LANGUAGE: ${arg_LANGUAGE}. Must be 'cpp' or 'ts'")
-		endif()
-
-		message(STATUS "Generating ${arg_LANGUAGE} for ${file} -> ${class_name}")
-		add_custom_command(
-			OUTPUT ${output_file}
-			COMMAND ${Python_EXECUTABLE}
-			ARGS
-			${CMAKE_SOURCE_DIR}/tools/generate.py
-			${file}
-			--class-name ${class_name}
-			${python_out_arg} ${arg_OUTPUT_DIR}
-		DEPENDS
-			${CMAKE_SOURCE_DIR}/tools/generate.py
-				${CMAKE_SOURCE_DIR}/tools/webbridge_parser.py
-				${CMAKE_SOURCE_DIR}/tools/typescript_types.py
-				${template_file}
-				${file}
-			COMMENT "Running webbridge registration on ${file} (${class_name}) for ${arg_LANGUAGE}"
-			VERBATIM
-		)
-
-		# Add C++ registration header to target sources
-		if(arg_LANGUAGE STREQUAL "cpp")
-			set_source_files_properties(${output_file} PROPERTIES GENERATED TRUE)
-			target_sources(${arg_TARGET} PRIVATE ${output_file})
+			list(APPEND all_output_files "${arg_OUTPUT_DIR}/${class_name}_registration.h")
+			list(APPEND all_output_files "${arg_OUTPUT_DIR}/${class_name}_registration.cpp")
+		elseif(arg_LANGUAGE STREQUAL "ts-impl")
+			list(APPEND all_output_files "${arg_OUTPUT_DIR}/${class_name}.ts")
 		endif()
 	endforeach()
+
+	# Determine template files and python args based on LANGUAGE
+	if(arg_LANGUAGE STREQUAL "cpp")
+		set(template_files 
+			"${CMAKE_SOURCE_DIR}/tools/templates/registration_header.h.j2"
+			"${CMAKE_SOURCE_DIR}/tools/templates/registration_impl.cpp.j2"
+		)
+		set(python_out_arg --cpp_out)
+	elseif(arg_LANGUAGE STREQUAL "ts-impl")
+		set(template_files "${CMAKE_SOURCE_DIR}/tools/templates/impl.ts.j2")
+		set(python_out_arg --ts_impl_out)
+	else()
+		message(FATAL_ERROR "Invalid LANGUAGE: ${arg_LANGUAGE}. Must be 'cpp' or 'ts-impl'")
+	endif()
+
+	# Single batch command for all files
+	list(LENGTH all_files file_count)
+	add_custom_command(
+		OUTPUT ${all_output_files}
+		COMMAND ${Python_EXECUTABLE}
+			${CMAKE_SOURCE_DIR}/tools/generate.py
+			--batch
+			${batch_args}
+			${python_out_arg}
+			${arg_OUTPUT_DIR}
+		DEPENDS
+			${CMAKE_SOURCE_DIR}/tools/generate.py
+			${CMAKE_SOURCE_DIR}/tools/parser.py
+			${CMAKE_SOURCE_DIR}/tools/tstypes.py
+			${template_files}
+			${all_input_files}
+		COMMENT "Generating ${arg_LANGUAGE} (batch of ${file_count} files)"
+		VERBATIM
+	)
+
+	# For C++, add generated files to target and set up include paths
+	if(arg_LANGUAGE STREQUAL "cpp")
+		foreach(output_file ${all_output_files})
+			set_source_files_properties(${output_file} PROPERTIES GENERATED TRUE)
+		endforeach()
+		target_sources(${arg_TARGET} PRIVATE ${all_output_files})
+		
+		# Add generated header directory to include path
+		target_include_directories(${arg_TARGET} PRIVATE ${arg_OUTPUT_DIR})
+	endif()
 endfunction()

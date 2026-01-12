@@ -1,0 +1,61 @@
+// Auto-generated TypeScript implementation for {{ cls.name }}
+// Generated from: {{ header_path }}
+
+// Auto-generated TypeScript definitions for {{ cls.name }}
+// Generated from: {{ header_path }}
+
+// Enums
+{% for enum in cls.enums %}
+export namespace {{ cls.name }} {
+  export enum {{ enum.name }} {
+{% for value in enum.enum_values %}
+    {{ value }} = "{{ value }}"{{ "," if not loop.last }}
+{% endfor %}
+  }
+}
+{% endfor %}
+
+export interface {{ cls.name }} {
+  readonly handle: string;
+
+  // Properties (Svelte Store compatible)
+{% for prop in cls.properties %}
+  {{ prop.name }}: {
+    subscribe: (callback: (value: {{ prop.type_name | ts_type }}) => void) => { unsubscribe: () => void };
+  };
+{% endfor %}
+
+  // Instance Constants (read-only, fetched once at object creation)
+{% for const in cls.constants if not const.is_static %}
+  readonly {{ const.name }}: {{ const.type_name | ts_type }};
+{% endfor %}
+
+  // Events
+{% for event in cls.events %}
+  {{ event.name }}: {
+    on: (callback: ({% if event.arg_types %}{% for arg_type in event.arg_types %}arg{{ loop.index0 }}: {{ arg_type | ts_type }}{{ ", " if not loop.last }}{% endfor %}{% endif %}) => void) => () => void;
+    once: (callback: ({% if event.arg_types %}{% for arg_type in event.arg_types %}arg{{ loop.index0 }}: {{ arg_type | ts_type }}{{ ", " if not loop.last }}{% endfor %}{% endif %}) => void) => void;
+  };
+{% endfor %}
+
+  // Methods (all return Promises because C++ <-> JS is always async)
+{% for method in cls.sync_methods %}
+  {{ method.name }}: ({% for param_type, param_name in method.parameters %}{{ param_name }}: {{ param_type | ts_type }}{{ ", " if not loop.last }}{% endfor %}) => Promise<{% if method.return_type == "void" %}void{% else %}{{ method.return_type | ts_type }}{% endif %}>;
+{% endfor %}
+{% for method in cls.async_methods %}
+  {{ method.name }}: ({% for param_type, param_name in method.parameters %}{{ param_name }}: {{ param_type | ts_type }}{{ ", " if not loop.last }}{% endfor %}) => Promise<{% if method.return_type == "void" %}void{% else %}{{ method.return_type | ts_type }}{% endif %}>;
+{% endfor %}
+
+  destroy: () => void;
+}
+
+export namespace {{ cls.name }} {
+  {% set ctor = cls.constructors[0] if cls.constructors else none %}
+  export async function create({% if ctor %}{% for param_type, param_name in ctor.parameters %}{{ param_name }}: {{ param_type | ts_type }}{{ ", " if not loop.last }}{% endfor %}{% endif %}): Promise<{{ cls.name }}> {
+    return (window as any).__webbridge_create{{ cls.name }}({% if ctor %}{% for param_type, param_name in ctor.parameters %}{{ param_name }}{{ ", " if not loop.last }}{% endfor %}{% endif %});
+  }
+{% for const in cls.constants if const.is_static %}
+  export const {{ const.name }}: {{ const.type_name | ts_type }} = 
+    (window as any).__webbridge_{{ cls.name }}_{{ const.name }};
+{% endfor %}
+};

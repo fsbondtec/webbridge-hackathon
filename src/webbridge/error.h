@@ -14,69 +14,69 @@
 #include <optional>
 #include <functional>
 #include <nlohmann/json.hpp>
-#include "Impl/ErrorHandler.h"
+#include "impl/error_handler.h"
 
 namespace webbridge {
 
-enum ErrorCode : int {
+enum error_code : int {
 	// =========================================
 	// 4xxx: JavaScript/Client errors (JSON deserialization)
 	// These codes are fixed and indicate JS bugs
 	// =========================================
-	JsonParseError		= 4001,  // Invalid JSON syntax
-	JsonTypeError		= 4002,  // Wrong JSON type (e.g. string instead of int)
-	JsonAccessError		= 4003,  // Missing key or array index
-	InvalidArgument		= 4004,  // Invalid argument from JS
-	ObjectNotFound		= 4005,  // Object ID not found in registry
+	JSON_PARSE_ERROR		= 4001,  // Invalid JSON syntax
+	JSON_TYPE_ERROR			= 4002,  // Wrong JSON type (e.g. string instead of int)
+	JSON_ACCESS_ERROR		= 4003,  // Missing key or array index
+	INVALID_ARGUMENT		= 4004,  // Invalid argument from JS
+	OBJECT_NOT_FOUND		= 4005,  // Object ID not found in registry
 
 	// =========================================
 	// 5xxx: C++/Server errors (runtime)
 	// These codes can be extended by custom handlers
 	// =========================================
-	RuntimeError		= 5000,  // Generic runtime error
-	NetworkError		= 5001,  // Network/connection error
-	FileError			= 5002,  // File I/O error
-	TimeoutError		= 5003,  // Timeout
-	PermissionError		= 5004,  // Permission error
-	CustomError			= 5500,  // Custom error (start)
+	RUNTIME_ERROR			= 5000,  // Generic runtime error
+	NETWORK_ERROR			= 5001,  // Network/connection error
+	FILE_ERROR				= 5002,  // File I/O error
+	TIMEOUT_ERROR			= 5003,  // Timeout
+	PERMISSION_ERROR		= 5004,  // Permission error
+	CUSTOM_ERROR			= 5500,  // Custom error (start)
 };
 
-enum class ErrorOrigin {
-	JavaScript,  // Error originated from JS side (deserialization)
-	Cpp,         // Error originated from C++ side (runtime)
-	Unknown      // Error origin unknown
+enum class error_origin {
+	JAVASCRIPT,  // Error originated from JS side (deserialization)
+	CPP,         // Error originated from C++ side (runtime)
+	UNKNOWN      // Error origin unknown
 };
 
-inline std::string to_string(ErrorOrigin origin) {
+inline std::string to_string(error_origin origin) {
 	switch (origin) {
-		case ErrorOrigin::JavaScript: return "javascript";
-		case ErrorOrigin::Cpp: return "cpp";
-		case ErrorOrigin::Unknown: return "unknown";
+		case error_origin::JAVASCRIPT: return "javascript";
+		case error_origin::CPP: return "cpp";
+		case error_origin::UNKNOWN: return "unknown";
 		default: return "unknown";
 	}
 }
 
-struct Error {
+struct error {
 	int code;                                 // Error code (4xxx or 5xxx)
 	std::string message;                      // Human-readable description
-	ErrorOrigin origin;                       // Origin of the error
+	error_origin origin;                      // Origin of the error
 	std::optional<nlohmann::json> details;    // Additional structured data
 	std::optional<std::string> stack;         // Callstack (if available)
 
-	Error(int code, std::string message, ErrorOrigin origin = ErrorOrigin::Unknown)
+	error(int code, std::string message, error_origin origin = error_origin::UNKNOWN)
 		: code(code), message(std::move(message)), origin(origin) {}
 
-	Error& withDetails(nlohmann::json d) {
+	error& with_details(nlohmann::json d) {
 		details = std::move(d);
 		return *this;
 	}
 
-	Error& withStack(std::string s) {
+	error& with_stack(std::string s) {
 		stack = std::move(s);
 		return *this;
 	}
 
-	Error& withOrigin(ErrorOrigin o) {
+	error& with_origin(error_origin o) {
 		origin = o;
 		return *this;
 	}
@@ -104,18 +104,18 @@ struct Error {
  * Sets the global error handler
  *
  * Example:
- * webbridge::setErrorHandler([](webbridge::Error& error, const std::exception& ex) {
- *     error.withStack(getCallstack());
- *     error.withDetails({{"thread_id", std::this_thread::get_id()}});
- *     logError(error);
+ * webbridge::set_error_handler([](webbridge::error& err, const std::exception& ex) {
+ *     err.with_stack(getCallstack());
+ *     err.with_details({{"thread_id", std::this_thread::get_id()}});
+ *     log_error(err);
  * });
  */
-inline void setErrorHandler(ErrorHandler handler) {
-	Impl::setErrorHandler(std::move(handler));
+inline void set_error_handler(error_handler handler) {
+	impl::set_error_handler(std::move(handler));
 }
 
-inline void clearErrorHandler() {
-	Impl::clearErrorHandler();
+inline void clear_error_handler() {
+	impl::clear_error_handler();
 }
 
 } // namespace webbridge

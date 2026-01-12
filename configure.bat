@@ -10,9 +10,6 @@ if exist build (
 if exist frontend\dist (
 	rmdir /s /q frontend\dist
 )
-if exist frontend\src\*.types.d.ts (
-	del frontend\src\*.types.d.ts
-)
 if exist frontend\node_modules (
 	rmdir /s /q frontend\node_modules
 )
@@ -51,10 +48,11 @@ if ERRORLEVEL 1 (
     GOTO END
 )
 
+:: Use Conan's generated environment
+CALL build\generators\conanbuild.bat
+
 cmake --preset conan-default
 
 CALL conda deactivate
 
 :END
-
-PAUSE
