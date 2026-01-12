@@ -3,7 +3,7 @@
 
 This repository is a demonstration project created during the fsbondtec [Christmas Hackathon 2025](https://www.fsbondtec.at/).
 
-C++ objects are seamlessly integrated into modern web applications as a modern **Qt alternative** for web-based UIs. While Qt uses QML/Qt Quick or Qt WebEngine for GUI development, WebBridge leverages standard web technologies. The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromium) and a **Python code generator** that uses **tree-sitter** to analyze C++ classes and automatically generate JavaScript bindings and TypeScript type definitions. Code generation is required because C++26 reflection is not yet available.
+C++ objects are seamlessly integrated into modern web applications as a modern **Qt alternative** for web-based UIs. While Qt uses QML/Qt Quick or Qt WebEngine for GUI development, WebBridge leverages standard web technologies. The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromium) and a **Python code generator** (`tools/generate.py`) that uses **tree-sitter** to analyze C++ classes and automatically generate C++ registration headers and TypeScript type definitions. The build process automatically invokes the code generator via CMake, making the workflow seamless. Code generation is required because C++26 reflection is not yet available.
 
 ## Getting Started
 
@@ -69,10 +69,10 @@ After a successful build:
 
 ```bash
 # Debug build (with DevTools):
-build\Debug\webbridge_hackathon.exe
+build\src\Debug\webbridge_hackathon.exe
 
 # Release build (without DevTools):
-build\Release\webbridge_hackathon.exe
+build\src\Release\webbridge_hackathon.exe
 ```
 
 ## Concepts
@@ -132,27 +132,27 @@ Inspired by JSON-RPC 2.0, GraphQL, and HTTP status codes. Promises are automatic
 The following example shows how to define a C++ class with methods, properties, and events for web integration with WebBridge.
 
 ```cpp
-#include "webbridge/Object.h"
+#include "webbridge/object.h"
 
 class MyObject : public webbridge::object
 {
 public:
-    property<bool> a_bool = false;
-    property<std::string> str_prop;
-    event<int, bool> a_event;
+    property<bool> aBool = false;
+    property<std::string> strProp;
+    event<int, bool> aEvent;
     inline static constexpr auto PI = 3.141592654;
     const std::string version = "1.0";
 
 public:
     [[async]] void foo(std::string_view val) {
         // long-running action
-        str_prop = val;
-        a_event.emit(42, false);
+        strProp = val;
+        aEvent.emit(42, false);
     }
 
     bool bar() const {
         // Parenthesis operator accesses value
-        return !a_bool();
+        return !aBool();
     }
 };
 ```
@@ -162,8 +162,8 @@ public:
 ```js
 const myObj = await MyObject.create();
 // ...
-myObj.a_bool.subscribe(value => {
-    console.log('a_bool updated:', value);
+myObj.aBool.subscribe(value => {
+    console.log('aBool updated:', value);
 });
 ```
 
@@ -190,12 +190,12 @@ myObj.foo('new value').then(() => {
 const myObj = await MyObject.create();
 
 // Register event listener (similar to Node.js EventEmitter)
-myObj.a_event.on((intValue, boolValue) => {
+myObj.aEvent.on((intValue, boolValue) => {
     console.log('Event received:', intValue, boolValue);
 });
 
 // Alternatively, one-time event
-myObj.a_event.once((intValue, boolValue) => {
+myObj.aEvent.once((intValue, boolValue) => {
     console.log('One-time event:', intValue, boolValue);
 });
 ```
@@ -227,10 +227,10 @@ int main() {
 
 ## Known Limitations
 
-The current implementation has the following limitations that are not yet supported:
+The current implementation has the following limitations:
 
-- overloaded constructors and methods are not supported. 
-- ~~**Enum Resolution in TypeScript**: C++ enums are not automatically converted to TypeScript enum types. They currently require manual type definitions in the frontend.~~
+- Overloaded constructors and methods are not supported.
+- Enums are automatically detected and exported to TypeScript, but complex enum use cases may require additional handling.
 
 ## License
 
