@@ -160,6 +160,7 @@ def main():
     parser.add_argument('--cpp_out', type=str, help='Ausgabe-Ordner für C++ Registration Header')
     parser.add_argument('--ts_out', type=str, help='Ausgabe-Ordner für TypeScript Type Definitionen')
     parser.add_argument('--ts_impl_out', type=str, help='Ausgabe-Ordner für TypeScript Implementierung')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Zeige detaillierte Ausgaben')
 
     args = parser.parse_args()
 
@@ -174,7 +175,8 @@ def main():
         print("Fehler: Mindestens --cpp_out, --ts_out oder --ts_impl_out muss angegeben werden", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Parsing: {input_path} -> {args.class_name}")
+    if args.verbose:
+        print(f"Parsing: {input_path} -> {args.class_name}")
 
     try:
         cls = parse_header(input_path, args.class_name)
@@ -191,11 +193,12 @@ def main():
         print(f"Fehler: Klasse '{args.class_name}' nicht gefunden.", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[OK] Klasse gefunden: {cls.name}")
-    print(f"  - Properties: {len(cls.properties)} {[p.name for p in cls.properties]}")
-    print(f"  - Events: {len(cls.events)} {[e.name for e in cls.events]}")
-    print(f"  - Sync Methods: {len(cls.sync_methods)} {[m.name for m in cls.sync_methods]}")
-    print(f"  - Async Methods: {len(cls.async_methods)} {[m.name for m in cls.async_methods]}")
+    if args.verbose:
+        print(f"[OK] Klasse gefunden: {cls.name}")
+        print(f"  - Properties: {len(cls.properties)} {[p.name for p in cls.properties]}")
+        print(f"  - Events: {len(cls.events)} {[e.name for e in cls.events]}")
+        print(f"  - Sync Methods: {len(cls.sync_methods)} {[m.name for m in cls.sync_methods]}")
+        print(f"  - Async Methods: {len(cls.async_methods)} {[m.name for m in cls.async_methods]}")
 
     try:
         # C++ Registration generieren (falls --cpp_out angegeben)
@@ -208,14 +211,16 @@ def main():
             reg_header_code = generate_registration_header(cls, input_path)
             with open(reg_header_output, 'w', encoding='utf-8') as f:
                 f.write(reg_header_code)
-            print(f"  [OK] Generiert: {reg_header_output}")
+            if args.verbose:
+                print(f"  [OK] Generiert: {reg_header_output}")
             
             # Implementation generieren
             reg_impl_output = cpp_out_path / f"{cls.name}_registration.cpp"
             reg_impl_code = generate_registration_impl(cls, input_path)
             with open(reg_impl_output, 'w', encoding='utf-8') as f:
                 f.write(reg_impl_code)
-            print(f"  [OK] Generiert: {reg_impl_output}")
+            if args.verbose:
+                print(f"  [OK] Generiert: {reg_impl_output}")
 
         # TypeScript Type Definitionen generieren (falls --ts_out angegeben)
         if args.ts_out:
@@ -225,7 +230,8 @@ def main():
             ts_code = generate_typescript_types(cls, input_path)
             with open(ts_output, 'w', encoding='utf-8') as f:
                 f.write(ts_code)
-            print(f"  [OK] Generiert: {ts_output}")
+            if args.verbose:
+                print(f"  [OK] Generiert: {ts_output}")
 
         # TypeScript Implementierung generieren (falls --ts_impl_out angegeben)
         if args.ts_impl_out:
@@ -235,7 +241,8 @@ def main():
             ts_impl_code = generate_typescript_impl(cls, input_path)
             with open(ts_impl_output, 'w', encoding='utf-8') as f:
                 f.write(ts_impl_code)
-            print(f"  [OK] Generiert: {ts_impl_output}")
+            if args.verbose:
+                print(f"  [OK] Generiert: {ts_impl_output}")
 
     except Exception as e:
         print(f"  [ERROR] Fehler bei {cls.name}: {e}", file=sys.stderr)
