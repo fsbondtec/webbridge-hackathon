@@ -139,78 +139,72 @@ function(webbridge_generate)
 		return()
 	endif()
 
-	# Process each file|classname pair
+	# Prepare batch arguments and output files
+	set(batch_args)
+	set(all_output_files)
+	set(all_input_files)
+	
 	foreach(pair ${all_files})
 		# Split pair into file and class_name
 		string(REPLACE "|" ";" parts "${pair}")
 		list(GET parts 0 file)
 		list(GET parts 1 class_name)
-
-		# Determine output file, template and python args based on LANGUAGE
-		if(arg_LANGUAGE STREQUAL "cpp")
-			set(output_h_file "${arg_OUTPUT_DIR}/${class_name}_registration.h")
-			set(output_cpp_file "${arg_OUTPUT_DIR}/${class_name}_registration.cpp")
-			set(template_h_file "${CMAKE_SOURCE_DIR}/tools/templates/registration_header.h.j2")
-			set(template_cpp_file "${CMAKE_SOURCE_DIR}/tools/templates/registration_impl.cpp.j2")
-			set(python_out_arg --cpp_out)
-		elseif(arg_LANGUAGE STREQUAL "ts-impl")
-			set(output_file "${arg_OUTPUT_DIR}/${class_name}.ts")
-			set(template_file "${CMAKE_SOURCE_DIR}/tools/templates/impl.ts.j2")
-			set(python_out_arg --ts_impl_out)
-		else()
-			message(FATAL_ERROR "Invalid LANGUAGE: ${arg_LANGUAGE}. Must be 'cpp', 'ts', or 'ts-impl'")
-		endif()
-
-		message(STATUS "Generating ${arg_LANGUAGE} for ${file} -> ${class_name}")
 		
+		# Add to batch arguments in format "file|classname"
+		list(APPEND batch_args "${file}|${class_name}")
+		list(APPEND all_input_files ${file})
+		
+		# Collect output files based on LANGUAGE
 		if(arg_LANGUAGE STREQUAL "cpp")
-			# For C++, generate both .h and .cpp files
-			add_custom_command(
-				OUTPUT ${output_h_file} ${output_cpp_file}
-				COMMAND ${Python_EXECUTABLE}
-				ARGS
-				${CMAKE_SOURCE_DIR}/tools/generate.py
-				${file}
-				--class-name ${class_name}
-				${python_out_arg} ${arg_OUTPUT_DIR}
-			DEPENDS
-				${CMAKE_SOURCE_DIR}/tools/generate.py
-					${CMAKE_SOURCE_DIR}/tools/parser.py
-					${CMAKE_SOURCE_DIR}/tools/tstypes.py
-					${template_h_file}
-					${template_cpp_file}
-					${file}
-				COMMENT "Running webbridge registration on ${file} (${class_name}) for ${arg_LANGUAGE}"
-				VERBATIM
-			)
-
-			# Add both .h and .cpp to target sources
-			set_source_files_properties(${output_h_file} PROPERTIES GENERATED TRUE)
-			set_source_files_properties(${output_cpp_file} PROPERTIES GENERATED TRUE)
-			target_sources(${arg_TARGET} PRIVATE ${output_h_file} ${output_cpp_file})
-			
-			# Add generated header directory to include path
-			get_filename_component(gen_header_dir ${output_h_file} DIRECTORY)
-			target_include_directories(${arg_TARGET} PRIVATE ${gen_header_dir})
-		else()
-			# For TypeScript, generate single file
-			add_custom_command(
-				OUTPUT ${output_file}
-				COMMAND ${Python_EXECUTABLE}
-				ARGS
-				${CMAKE_SOURCE_DIR}/tools/generate.py
-				${file}
-				--class-name ${class_name}
-				${python_out_arg} ${arg_OUTPUT_DIR}
-			DEPENDS
-				${CMAKE_SOURCE_DIR}/tools/generate.py
-					${CMAKE_SOURCE_DIR}/tools/parser.py
-					${CMAKE_SOURCE_DIR}/tools/tstypes.py
-					${template_file}
-					${file}
-				COMMENT "Running webbridge registration on ${file} (${class_name}) for ${arg_LANGUAGE}"
-				VERBATIM
-			)
+			list(APPEND all_output_files "${arg_OUTPUT_DIR}/${class_name}_registration.h")
+			list(APPEND all_output_files "${arg_OUTPUT_DIR}/${class_name}_registration.cpp")
+		elseif(arg_LANGUAGE STREQUAL "ts-impl")
+			list(APPEND all_output_files "${arg_OUTPUT_DIR}/${class_name}.ts")
 		endif()
 	endforeach()
+
+	# Determine template files and python args based on LANGUAGE
+	if(arg_LANGUAGE STREQUAL "cpp")
+		set(template_files 
+			"${CMAKE_SOURCE_DIR}/tools/templates/registration_header.h.j2"
+			"${CMAKE_SOURCE_DIR}/tools/templates/registration_impl.cpp.j2"
+		)
+		set(python_out_arg --cpp_out)
+	elseif(arg_LANGUAGE STREQUAL "ts-impl")
+		set(template_files "${CMAKE_SOURCE_DIR}/tools/templates/impl.ts.j2")
+		set(python_out_arg --ts_impl_out)
+	else()
+		message(FATAL_ERROR "Invalid LANGUAGE: ${arg_LANGUAGE}. Must be 'cpp' or 'ts-impl'")
+	endif()
+
+	# Single batch command for all files
+	list(LENGTH all_files file_count)
+	add_custom_command(
+		OUTPUT ${all_output_files}
+		COMMAND ${Python_EXECUTABLE}
+			${CMAKE_SOURCE_DIR}/tools/generate.py
+			--batch
+			${batch_args}
+			${python_out_arg}
+			${arg_OUTPUT_DIR}
+		DEPENDS
+			${CMAKE_SOURCE_DIR}/tools/generate.py
+			${CMAKE_SOURCE_DIR}/tools/parser.py
+			${CMAKE_SOURCE_DIR}/tools/tstypes.py
+			${template_files}
+			${all_input_files}
+		COMMENT "Generating ${arg_LANGUAGE} (batch of ${file_count} files)"
+		VERBATIM
+	)
+
+	# For C++, add generated files to target and set up include paths
+	if(arg_LANGUAGE STREQUAL "cpp")
+		foreach(output_file ${all_output_files})
+			set_source_files_properties(${output_file} PROPERTIES GENERATED TRUE)
+		endforeach()
+		target_sources(${arg_TARGET} PRIVATE ${all_output_files})
+		
+		# Add generated header directory to include path
+		target_include_directories(${arg_TARGET} PRIVATE ${arg_OUTPUT_DIR})
+	endif()
 endfunction()
