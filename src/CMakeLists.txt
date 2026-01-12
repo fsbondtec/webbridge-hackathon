@@ -137,7 +137,7 @@ webbridge_generate(
 	LANGUAGE cpp
 )
 
-target_compile_options(webbridge_hackathon PRIVATE /W3)
+target_compile_options(webbridge_hackathon PRIVATE /W3 /bigobj)
 
 add_custom_command(TARGET webbridge_hackathon POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/bin

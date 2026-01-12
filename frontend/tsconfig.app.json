@@ -16,14 +16,6 @@
     "allowJs": true,
     "checkJs": true,
     "moduleDetection": "force",
-
-    /* Path mapping for generated types */
-    "baseUrl": ".",
-    "paths": {
-      "*.types": ["../build/frontend/generated/*.types.d.ts"]
-    },
-    
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -32,6 +24,5 @@
     "src/**/*.ts",
     "src/**/*.js",
     "src/**/*.svelte",
-    "../build/frontend/generated/*.d.ts"
   ]
 }

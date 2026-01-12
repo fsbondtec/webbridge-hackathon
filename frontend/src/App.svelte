@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { MyObject } from './MyObject';
-  import { TestObject } from './TestObject';
-  import { TestObject8 } from './TestObject8';
+  import { MyObject } from './generated/MyObject';
+  import { TestObject } from './generated/TestObject';
+  import { TestObject8 } from './generated/TestObject8';
   import bildUrl from './assets/bild.jpg';
 
   // State
