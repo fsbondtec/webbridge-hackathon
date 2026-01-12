@@ -1,5 +1,5 @@
 #include "error_handler.h"
-#include "../Error.h"
+#include "../error.h"
 
 namespace webbridge::impl {
 
