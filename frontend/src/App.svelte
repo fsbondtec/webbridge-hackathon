@@ -7,6 +7,8 @@
   // State
   let obj: MyObject | null = null;
   let logs: string[] = [];
+  let errorModalOpen = false;
+  let errorModalMessage = '';
 
   // Store subscriptions
   $: aBool = obj?.aBool;
@@ -135,8 +137,11 @@
     try {
       log('Calling throwError()...', 'info');
       await obj.throwError();
-      log('throwError() completed (should not happen!)', 'success');
     } catch (error) {
+      const errText =
+        error instanceof Error ? error.message : (typeof error === 'string' ? error : JSON.stringify(error));
+      errorModalMessage = errText;
+      errorModalOpen = true;
       log(`throwError() failed (expected): ${JSON.stringify(error)}`, 'error');
     }
   }
@@ -443,3 +448,16 @@
     </div>
   </div>
 </div>
+
+<!-- Error Modal -->
+{#if errorModalOpen}
+  <div class="modal modal-open">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg text-error">❌ Fehler</h3>
+      <p class="py-4">{errorModalMessage}</p>
+      <div class="modal-action">
+        <button class="btn btn-primary" on:click={() => errorModalOpen = false}>OK</button>
+      </div>
+    </div>
+  </div>
+{/if}

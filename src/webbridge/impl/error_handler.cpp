@@ -39,6 +39,7 @@ error from_json_exception(const nlohmann::json::exception& ex) {
 error from_cpp_exception(const std::exception& ex, int code) {
 	if (g_error_handler) {
 		error err(code, ex.what());
+		err.with_origin(error_origin::CPP);
 		g_error_handler(err, ex);
 		return err;
 	}

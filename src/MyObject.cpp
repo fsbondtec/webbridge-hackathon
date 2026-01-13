@@ -34,7 +34,7 @@ void MyObject::testVectors()
 
 void MyObject::throwError()
 {
-	throw std::runtime_error("Test error");
+	throw std::runtime_error("Test Exception");
 }
 
 std::string MyObject::multiParamTest(

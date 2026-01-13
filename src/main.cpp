@@ -52,12 +52,7 @@ int WINAPI WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,
 
 		// Register error handler
 		webbridge::set_error_handler([](webbridge::error& err, const std::exception& ex) {
-			pfd::message(
-				"Error " + std::to_string(err.code),
-				err.message,
-				pfd::choice::ok,
-				pfd::icon::error
-			);
+			std::cout << "Error " << err.code << ": " << err.message << "\n";
 		});
 		
 		// Register type -> needs to be created in js
