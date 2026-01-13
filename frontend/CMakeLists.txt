@@ -13,19 +13,54 @@ set(WEBBRIDGE_OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/generated)
 # Ensure output directory exists
 file(MAKE_DIRECTORY ${WEBBRIDGE_OUTPUT_DIR})
 
-# Generate TypeScript implementations using discoverer
+# Prepare list of generated files and batch arguments for generate.py
+set(GENERATED_TS_FILES)
+set(BATCH_ARGS)
+
+foreach(header_file IN LISTS WEBBRIDGE_HEADER_FILES)
+	get_filename_component(class_name ${header_file} NAME_WE)
+	list(APPEND GENERATED_TS_FILES "${WEBBRIDGE_OUTPUT_DIR}/${class_name}.ts")
+	list(APPEND BATCH_ARGS "${header_file}|${class_name}")
+endforeach()
+
+# Generate TypeScript files at configuration time if they don't exist
+set(NEED_GENERATION FALSE)
+foreach(ts_file IN LISTS GENERATED_TS_FILES)
+	if(NOT EXISTS ${ts_file})
+		set(NEED_GENERATION TRUE)
+		break()
+	endif()
+endforeach()
+
+if(NEED_GENERATION)
+	message(STATUS "Generating TypeScript implementations at configuration time...")
+	execute_process(
+		COMMAND ${Python_EXECUTABLE}
+			${CMAKE_SOURCE_DIR}/tools/generate.py
+			--batch
+			${BATCH_ARGS}
+			--ts_impl_out
+			${WEBBRIDGE_OUTPUT_DIR}
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		RESULT_VARIABLE gen_result
+		OUTPUT_VARIABLE gen_output
+		ERROR_VARIABLE gen_error
+	)
+	if(NOT gen_result EQUAL 0)
+		message(STATUS "Generation output: ${gen_output}")
+		message(STATUS "Generation error: ${gen_error}")
+		message(FATAL_ERROR "TypeScript generation failed with: ${gen_result}")
+	endif()
+	message(STATUS "TypeScript implementations generated successfully")
+endif()
+
+# Generate TypeScript implementations using discoverer (for build-time updates)
 webbridge_generate(
 	TARGET webbridge_gen
 	FILES ${WEBBRIDGE_HEADER_FILES}
 	LANGUAGE ts-impl
 	OUTPUT_DIR ${WEBBRIDGE_OUTPUT_DIR}
 )
-
-set(GENERATED_TS_FILES)
-foreach(header_file IN LISTS WEBBRIDGE_HEADER_FILES)
-	get_filename_component(class_name ${header_file} NAME_WE)
-	list(APPEND GENERATED_TS_FILES "${WEBBRIDGE_OUTPUT_DIR}/${class_name}.ts")
-endforeach()
 
 add_custom_target(webbridge_gen ALL
 	DEPENDS ${GENERATED_TS_FILES}
