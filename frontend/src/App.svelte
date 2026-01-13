@@ -137,12 +137,15 @@
     try {
       log('Calling throwError()...', 'info');
       await obj.throwError();
-    } catch (error) {
-      const errText =
-        error instanceof Error ? error.message : (typeof error === 'string' ? error : JSON.stringify(error));
-      errorModalMessage = errText;
-      errorModalOpen = true;
-      log(`throwError() failed (expected): ${JSON.stringify(error)}`, 'error');
+    } catch (e) {
+      if (e instanceof WebBridgeError) {
+        log(`${e.name}: ${e.message}`);
+        log(`Code: ${e.code}`);        
+        log(`Cpp Function: ${e.cppFunction}`);
+        log(`Cpp Name: ${e.cppName}`);
+        errorModalMessage = e.message;
+        errorModalOpen = true;
+      }
     }
   }
 
@@ -167,7 +170,7 @@
       log(`multiParamTest() returned: ${result}`, 'success');
       log('✨ Check properties above - they should all be updated!', 'info');
     } catch (error) {
-      log(`multiParamTest() failed: ${JSON.stringify(error)}`, 'error');
+      log(`multiParamTest() failed: ${error?.constructor?.name}`, 'error');
     }
   }
 
