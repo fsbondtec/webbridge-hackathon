@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { MyObject } from './generated/MyObject';
   import { TestObject } from './generated/TestObject';
+  import { WebBridgeError } from './WebBridgeError';
   import bildUrl from './assets/bild.jpg';
 
   // State
@@ -140,9 +141,8 @@
     } catch (e) {
       if (e instanceof WebBridgeError) {
         log(`${e.name}: ${e.message}`);
-        log(`Code: ${e.code}`);        
-        log(`Cpp Function: ${e.cppFunction}`);
-        log(`Cpp Name: ${e.cppName}`);
+        log(`Code: ${e.code}, Origin: ${e.origin}`);        
+        log(`Cpp Name: ${e.cppName}, Cpp Function: ${e.cppFunction}`);
         errorModalMessage = e.message;
         errorModalOpen = true;
       }
@@ -170,7 +170,7 @@
       log(`multiParamTest() returned: ${result}`, 'success');
       log('✨ Check properties above - they should all be updated!', 'info');
     } catch (error) {
-      log(`multiParamTest() failed: ${error?.constructor?.name}`, 'error');
+      log(`multiParamTest() failed: ${(error as Error).name}`, 'error');
     }
   }
 
@@ -406,7 +406,7 @@
             <div class="stats shadow">
               <div class="stat">
                 <div class="stat-title">pod</div>
-                <div class="stat-value text-xl font-mono">{`{ a: ${$pod.a}, b: ${$pod.b} }`}</div>
+                <div class="stat-value text-xl font-mono">{`{ a: ${($pod as any).a}, b: ${($pod as any).b} }`}</div>
               </div>
             </div>
             {/if}

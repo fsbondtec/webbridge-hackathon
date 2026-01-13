@@ -24,6 +24,59 @@ const __webbridge_objects = {};
 const __webbridge_class_configs = {};
 
 // =============================================================================
+// WebBridgeError: Custom Error class for C++ exceptions
+// =============================================================================
+
+class WebBridgeError extends Error {
+    // Error codes (matching C++ error_code enum)
+    static JSON_PARSE_ERROR = 4001;
+    static JSON_TYPE_ERROR = 4002;
+    static JSON_ACCESS_ERROR = 4003;
+    static INVALID_ARGUMENT = 4004;
+    static OBJECT_NOT_FOUND = 4005;
+    static RUNTIME_ERROR = 5000;
+    static NETWORK_ERROR = 5001;
+    static FILE_ERROR = 5002;
+    static TIMEOUT_ERROR = 5003;
+    static PERMISSION_ERROR = 5004;
+    static CUSTOM_ERROR = 5500;
+
+    constructor(rawError) {
+        // Parse error if it's a string (from webview reject)
+        let errorData;
+        if (typeof rawError === 'string') {
+            try {
+                const parsed = JSON.parse(rawError);
+                errorData = parsed.error || parsed;
+            } catch {
+                errorData = { message: rawError, code: 5000, origin: 'unknown' };
+            }
+        } else if (rawError instanceof Error) {
+            // Already an Error, try to parse message as JSON
+            try {
+                const parsed = JSON.parse(rawError.message);
+                errorData = parsed.error || parsed;
+            } catch {
+                errorData = { message: rawError.message, code: 5000, origin: 'unknown' };
+            }
+        } else {
+            errorData = rawError.error || rawError;
+        }
+
+        super(errorData.message || 'Unknown error');
+        this.name = 'WebBridgeError';
+        this.code = errorData.code || 5000;
+        this.origin = errorData.origin || 'unknown';
+        this.cppFunction = errorData.cpp_function || null;
+        this.cppName = errorData.cpp_name || null;
+        this.cause = rawError; // Store original for debugging
+    }
+}
+
+// Export globally
+window.WebBridgeError = WebBridgeError;
+
+// =============================================================================
 // Universal Dispatcher Functions (bound once, used by all classes)
 // =============================================================================
 
@@ -181,8 +234,12 @@ function __webbridge_createClass(config) {
     const syncMethodWrappers = {};
     for (let i = 0; i < syncMethodCount; i++) {
         const methodName = syncMethods[i];
-        syncMethodWrappers[methodName] = function(...args) {
-            return window.__webbridge_sync(className, this.__id, "call", methodName, ...args);
+        syncMethodWrappers[methodName] = async function(...args) {
+            try {
+                return await window.__webbridge_sync(className, this.__id, "call", methodName, ...args);
+            } catch (e) {
+                throw new WebBridgeError(e);
+            }
         };
     }
 
@@ -190,15 +247,24 @@ function __webbridge_createClass(config) {
     const asyncMethodWrappers = {};
     for (let i = 0; i < asyncMethodCount; i++) {
         const methodName = asyncMethods[i];
-        asyncMethodWrappers[methodName] = function(...args) {
-            return window.__webbridge_async(className, this.__id, methodName, ...args);
+        asyncMethodWrappers[methodName] = async function(...args) {
+            try {
+                return await window.__webbridge_async(className, this.__id, methodName, ...args);
+            } catch (e) {
+                throw new WebBridgeError(e);
+            }
         };
     }
 
     const factory = {
         async create(...args) {
             // Use universal create dispatcher
-            const objectId = await window.__webbridge_create(className, ...args);
+            let objectId;
+            try {
+                objectId = await window.__webbridge_create(className, ...args);
+            } catch (e) {
+                throw new WebBridgeError(e);
+            }
 
             // Build property descriptors for all members at once
             const descriptors = {

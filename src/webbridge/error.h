@@ -60,17 +60,11 @@ struct error {
     int code;                                 // Error code (4xxx or 5xxx)
     std::string message;                      // Human-readable description
     error_origin origin;                      // Origin of the error
-    std::optional<std::string> stack;         // Callstack (if available)
     std::optional<std::string> cpp_function;  // Name of the C++ function
     std::optional<std::string> cpp_name;      // Name of the C++ Exception
 
     error(int code, std::string message, error_origin origin = error_origin::UNKNOWN)
         : code(code), message(std::move(message)), origin(origin) {}
-
-    error& with_stack(std::string s) {
-        stack = std::move(s);
-        return *this;
-    }
 
     error& with_origin(error_origin o) {
         origin = o;
@@ -91,7 +85,6 @@ struct error {
         nlohmann::json j;
         j["code"] = code;
         j["message"] = message;
-        j["stack"] = stack ? nlohmann::json(*stack) : nlohmann::json(nullptr);
         j["origin"] = to_string(origin);
         j["cpp_function"] = cpp_function ? 
 			nlohmann::json(*cpp_function) : nlohmann::json(nullptr);
@@ -113,8 +106,6 @@ struct error {
  *
  * Example:
  * webbridge::set_error_handler([](webbridge::error& err, const std::exception& ex) {
- *     err.with_stack(getCallstack());
- *     err.with_details({{"thread_id", std::this_thread::get_id()}});
  *     log_error(err);
  * });
  */
