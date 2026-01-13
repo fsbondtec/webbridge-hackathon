@@ -1,9 +1,33 @@
-
 # C++ to JavaScript Bridge [webbridge]
 
 This repository is a demonstration project created during the fsbondtec [Christmas Hackathon 2025](https://www.fsbondtec.at/).
 
-C++ objects are seamlessly integrated into modern web applications as a modern **Qt alternative** for web-based UIs. While Qt uses QML/Qt Quick or Qt WebEngine for GUI development, WebBridge leverages standard web technologies. The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromium) and a **Python code generator** (`tools/generate.py`) that uses **tree-sitter** to analyze C++ classes and automatically generate C++ registration headers and TypeScript type definitions. The build process automatically invokes the code generator via CMake, making the workflow seamless. Code generation is required because C++26 reflection is not yet available.
+C++ objects are seamlessly integrated into modern web applications as a modern **Qt alternative** for web-based UIs. While Qt uses QML/Qt Quick or Qt WebEngine for GUI development, WebBridge leverages standard web technologies. 
+
+**Motivation:** A key advantage over Qt is the significantly reduced boilerplate code. In Qt, a simple property requires extensive boilerplate with getter, setter, signal, and backing field:
+
+```cpp
+// Qt approach - verbose boilerplate
+Q_PROPERTY(bool aBool READ aBool WRITE setABool NOTIFY aBoolChanged)
+bool aBool() const {
+    return _aBool;
+}
+void setABool(bool v) {
+    if (v != _aBool) {
+        _aBool = v;
+        emit aBoolChanged();
+    }
+}
+signals:
+    void aBoolChanged();
+private:
+    bool _aBool;
+
+// WebBridge approach - minimal and clean
+property<bool> aBool;
+```
+
+The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromium) and a **Python code generator** (`tools/generate.py`) that uses **tree-sitter** to analyze C++ classes and automatically generate C++ registration headers and TypeScript type definitions. The build process automatically invokes the code generator via CMake, making the workflow seamless. Code generation is required because C++26 reflection is not yet available.
 
 ## Getting Started
 
