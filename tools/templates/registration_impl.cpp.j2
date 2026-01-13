@@ -21,7 +21,7 @@
 // =============================================================================
 
 {% for enum in cls.enums -%}
-void to_json(nlohmann::json& j, const {{ cls.name }}::{{ enum.name }}& e) {
+static void to_json(nlohmann::json& j, const {{ cls.name }}::{{ enum.name }}& e) {
     switch (e) {
 {% for value in enum.enum_values %}
         case {{ cls.name }}::{{ enum.name }}::{{ value }}: j = "{{ value }}"; break;
@@ -30,7 +30,7 @@ void to_json(nlohmann::json& j, const {{ cls.name }}::{{ enum.name }}& e) {
     }
 }
 
-void from_json(const nlohmann::json& j, {{ cls.name }}::{{ enum.name }}& e) {
+static void from_json(const nlohmann::json& j, {{ cls.name }}::{{ enum.name }}& e) {
     const auto& name = j.get<std::string>();
 {% for value in enum.enum_values %}
     {{ "if" if loop.first else "else if" }} (name == "{{ value }}") e = {{ cls.name }}::{{ enum.name }}::{{ value }};
