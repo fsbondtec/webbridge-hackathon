@@ -29,7 +29,7 @@ conda env create -f environment.yml
 conda env update --file environment.yml --name webbridge_hackathon --prune
 ```
 
-**2. Configure and build the backend**
+**2. Configure and build**
 
 The `configure.bat` script will:
 - Activate the Conda environment
@@ -41,29 +41,26 @@ The `configure.bat` script will:
 configure.bat
 ```
 
-Then build with Ninja:
+Then build using the provided build script:
 
 ```bash
-# With MSVC environment (required for Ninja):
-cmd /c "build\generators\conanbuild.bat && cmake --build build --config Release"
-cmd /c "build\generators\conanbuild.bat && cmake --build build --config Debug"
+# Build Debug (default)
+build.bat
 
-# Or use VS Code tasks (Ctrl+Shift+B) - these load the environment automatically
+# Build Release
+build.bat --release
+
+# Rebuild (clean first)
+build.bat --rebuild --release
 ```
 
-**3. Build the frontend**
+**VS Code Integration:**
+- **Build tasks**: Press `Ctrl+Shift+B` to access build tasks (Build, Rebuild, Clean, etc.)
+- **Debugging**: Press `F5` to build and debug - launch configurations are available in `.vscode/launch.json`
 
-The frontend uses Vite + Svelte 5 and TypeScript:
+**Note:** The frontend (Vite + Svelte 5 + TypeScript) is automatically built as part of the CMake build process. The compiled assets are embedded into the C++ application via CMakeRC and served over HTTP by the `ResourceServer`.
 
-```bash
-cd frontend
-npm install
-npm run build
-```
-
-The compiled assets are embedded into the C++ application via CMakeRC and served over HTTP by the `ResourceServer`.
-
-**4. Run the application**
+**3. Run the application**
 
 After a successful build:
 
