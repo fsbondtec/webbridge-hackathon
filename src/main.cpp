@@ -1,5 +1,5 @@
-#include "MyObject_registration.h"
-#include "TestObject_registration.h"
+#include "MyObject.h"
+#include "TestObject.h"
 #include "ResourceServer.h"
 #include "webbridge/Object.h"
 #include "webbridge/Error.h"
@@ -61,20 +61,9 @@ int WINAPI WinMain(HINSTANCE /*hInst*/, HINSTANCE /*hPrevInst*/,
 		});
 		
 		// Register type -> needs to be created in js
-		std::cout << "Starting register_type for MyObject..." << std::endl;
-		auto start = std::chrono::high_resolution_clock::now();
-		webbridge::impl::register_MyObject(&w);
-		auto end = std::chrono::high_resolution_clock::now();
-		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-		std::cout << "register_type took " << duration.count() << " ms" << std::endl;
-		
-		std::cout << "Starting register_type for TestObject..." << std::endl;
-		start = std::chrono::high_resolution_clock::now();
-		webbridge::impl::register_TestObject(&w);
-		end = std::chrono::high_resolution_clock::now();
-		duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-		std::cout << "register_type took " << duration.count() << " ms" << std::endl;
-		
+		webbridge::register_type<MyObject>(&w);
+		webbridge::register_type<TestObject>(&w);
+
 		// Navigate FIRST so the frontend (with WebbridgeRuntime) is loaded
 		w.navigate(server.get_url());
 		w.run();

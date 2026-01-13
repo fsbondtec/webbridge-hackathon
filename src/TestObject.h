@@ -33,3 +33,11 @@ public:
     // JSON Array Benchmark
     [[async]] double jsonBench2();
 };
+
+// convenience method
+#include "TestObject_registration.h"
+
+namespace webbridge {
+template<> inline void register_type<TestObject>(webview::webview* w) {
+	impl::register_TestObject(w);
+}}

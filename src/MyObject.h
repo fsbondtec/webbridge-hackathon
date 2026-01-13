@@ -67,3 +67,11 @@ public:
 		const Pod& podValue
 	);
 };
+
+// convenience method
+#include "MyObject_registration.h"
+
+namespace webbridge {
+template<> inline void register_type<MyObject>(webview::webview* w) {
+	impl::register_MyObject(w);
+}}

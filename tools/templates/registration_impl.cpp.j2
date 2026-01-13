@@ -8,14 +8,44 @@
  */
 
 #include "{{ cls.name }}_registration.h"
+#include "{{ header_path }}"
 #include "webbridge/impl/object_registry.h"
 #include "webbridge/impl/binding_helpers.h"
 #include "webbridge/impl/dispatcher.h"
 #include "webbridge/impl/type_registration.h"
 #include <nlohmann/json.hpp>
 
-// Note: to_json/from_json for enums are now inline in the header file
+{% if cls.enums -%}
+// =============================================================================
+// JSON Serialization for Nested Enums (implementations)
+// =============================================================================
 
+{% for enum in cls.enums -%}
+void to_json(nlohmann::json& j, const {{ cls.name }}::{{ enum.name }}& e) {
+    switch (e) {
+{% for value in enum.enum_values %}
+        case {{ cls.name }}::{{ enum.name }}::{{ value }}: j = "{{ value }}"; break;
+{% endfor %}
+        default: j = nullptr; break;
+    }
+}
+
+void from_json(const nlohmann::json& j, {{ cls.name }}::{{ enum.name }}& e) {
+    const auto& name = j.get<std::string>();
+{% for value in enum.enum_values %}
+    {{ "if" if loop.first else "else if" }} (name == "{{ value }}") e = {{ cls.name }}::{{ enum.name }}::{{ value }};
+{% endfor %}
+    else {
+        throw nlohmann::json::type_error::create(
+            302,
+            "Invalid enum value: '" + name + "' for type {{ cls.name }}::{{ enum.name }}",
+            nullptr
+        );
+    }
+}
+
+{% endfor -%}
+{% endif -%}
 namespace webbridge::impl {
 
 // =============================================================================
