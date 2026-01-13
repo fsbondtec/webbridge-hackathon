@@ -57,43 +57,44 @@ inline std::string to_string(error_origin origin) {
 }
 
 struct error {
-	int code;                                 // Error code (4xxx or 5xxx)
-	std::string message;                      // Human-readable description
-	error_origin origin;                      // Origin of the error
-	std::optional<nlohmann::json> details;    // Additional structured data
-	std::optional<std::string> stack;         // Callstack (if available)
+    int code;                                 // Error code (4xxx or 5xxx)
+    std::string message;                      // Human-readable description
+    error_origin origin;                      // Origin of the error
+    std::optional<std::string> stack;         // Callstack (if available)
+    std::optional<std::string> cpp_function;  // Name of the C++ function (optional)
 
-	error(int code, std::string message, error_origin origin = error_origin::UNKNOWN)
-		: code(code), message(std::move(message)), origin(origin) {}
+    error(int code, std::string message, error_origin origin = error_origin::UNKNOWN)
+        : code(code), message(std::move(message)), origin(origin) {}
 
-	error& with_details(nlohmann::json d) {
-		details = std::move(d);
-		return *this;
-	}
+    error& with_stack(std::string s) {
+        stack = std::move(s);
+        return *this;
+    }
 
-	error& with_stack(std::string s) {
-		stack = std::move(s);
-		return *this;
-	}
+    error& with_origin(error_origin o) {
+        origin = o;
+        return *this;
+    }
 
-	error& with_origin(error_origin o) {
-		origin = o;
-		return *this;
-	}
+    error& with_cpp_function(std::string func) {
+        cpp_function = std::move(func);
+        return *this;
+    }
 
-	nlohmann::json to_json() const {
-		nlohmann::json j;
-		j["code"] = code;
-		j["message"] = message;
-		j["details"] = details.has_value() ? details.value() : nullptr;
-		j["stack"] = stack.has_value() ? nlohmann::json(stack.value()) : nlohmann::json();
-		j["origin"] = to_string(origin);
-		return j;
-	}
-	
-	std::string dump() const {
-		return nlohmann::json{{"error", to_json()}}.dump();
-	}
+    nlohmann::json to_json() const {
+        nlohmann::json j;
+        j["code"] = code;
+        j["message"] = message;
+        j["stack"] = stack ? nlohmann::json(*stack) : nlohmann::json(nullptr);
+        j["origin"] = to_string(origin);
+        j["cpp_function"] = cpp_function ? 
+			nlohmann::json(*cpp_function) : nlohmann::json(nullptr);
+        return j;
+    }
+    
+    std::string dump() const {
+        return nlohmann::json{{"error", to_json()}}.dump();
+    }
 };
 
 // =========================================

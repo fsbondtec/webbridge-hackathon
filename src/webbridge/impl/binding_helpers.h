@@ -38,7 +38,7 @@ namespace webbridge::impl {
  * Error:   {code, {"error":...}} - Structured error object
  */
 template<typename Callable, typename... Args>
-std::tuple<int, std::string> invoke_and_serialize(Callable&& func, Args&&... args) {
+std::tuple<int, std::string> invoke_and_serialize(const char* cpp_function, Callable&& func, Args&&... args) {
 	try {
 		using result_type = std::invoke_result_t<Callable, Args...>;
 		
@@ -55,7 +55,7 @@ std::tuple<int, std::string> invoke_and_serialize(Callable&& func, Args&&... arg
 		return {err.code, err.dump()};
 	}
 	catch (const std::exception& ex) {
-		auto err = from_cpp_exception(ex, RUNTIME_ERROR);
+		auto err = from_cpp_exception(ex, RUNTIME_ERROR, cpp_function);
 		return {err.code, err.dump()};
 	}
 	catch (...) {

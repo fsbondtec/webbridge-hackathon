@@ -109,18 +109,21 @@ static void handle_{{ cls.name }}_sync(
     } else if (op == "call") {
 {% for method in cls.sync_methods %}
         {{ "if" if loop.first else "} else if" }} (member == "{{ method.name }}") {
-            auto [status, json] = invoke_and_serialize([&]() {
+            auto [status, json] = invoke_and_serialize(
+                "{{ cls.name }}::{{ method.name }}",
+                [&]() {
 {% if method.parameters %}
-                return obj->{{ method.name }}(
+                    return obj->{{ method.name }}(
 {% for param in method.parameters %}
-                    args.at({{ loop.index0 + 4 }}).get<{{ cls | qualified_type(param[0]) }}>(){% if not loop.last %},{% endif %}
+                        args.at({{ loop.index0 + 4 }}).get<{{ cls | qualified_type(param[0]) }}>(){% if not loop.last %},{% endif %}
 
 {% endfor %}
-                );
+                    );
 {% else %}
-                return obj->{{ method.name }}();
+                    return obj->{{ method.name }}();
 {% endif %}
-            });
+                }
+            );
             w_ref.resolve(req_id, status, json);
             return;
 {% endfor %}
@@ -145,18 +148,21 @@ static void handle_{{ cls.name }}_async(
 
 {% for method in cls.async_methods %}
     {{ "if" if loop.first else "} else if" }} (method == "{{ method.name }}") {
-        auto [status, json] = invoke_and_serialize([&]() {
+        auto [status, json] = invoke_and_serialize(
+            "{{ cls.name }}::{{ method.name }}",
+            [&]() {
 {% if method.parameters %}
-            return obj->{{ method.name }}(
+                return obj->{{ method.name }}(
 {% for param in method.parameters %}
-                args.at({{ loop.index0 + 3 }}).get<{{ cls | qualified_type(param[0]) }}>(){% if not loop.last %},{% endif %}
+                    args.at({{ loop.index0 + 3 }}).get<{{ cls | qualified_type(param[0]) }}>(){% if not loop.last %},{% endif %}
 
 {% endfor %}
-            );
+                );
 {% else %}
-            return obj->{{ method.name }}();
+                return obj->{{ method.name }}();
 {% endif %}
-        });
+            }
+        );
         w_ref.resolve(req_id, status, json);
         return;
 {% endfor %}

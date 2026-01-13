@@ -32,23 +32,25 @@ error from_json_exception(const nlohmann::json::exception& ex) {
 	}
 	
 	return error(code, ex.what())
-		.with_origin(error_origin::JAVASCRIPT)
-		.with_details({{"nlohmann_id", ex.id}});
+		.with_origin(error_origin::JAVASCRIPT);
 }
 
-error from_cpp_exception(const std::exception& ex, int code) {
+error from_cpp_exception(const std::exception& ex, int code, const char* function) {
 	if (g_error_handler) {
 		error err(code, ex.what());
 		err.with_origin(error_origin::CPP);
+		if (function)
+			err.with_cpp_function(function);
 		g_error_handler(err, ex);
 		return err;
 	}
 	else {
 		error err(code, ex.what());
 		err.with_origin(error_origin::CPP);
+		if (function)
+			err.with_cpp_function(function);
 		return err;	
 	}
-
 }
 
 error unknown_error() {

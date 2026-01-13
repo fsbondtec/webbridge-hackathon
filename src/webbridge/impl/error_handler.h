@@ -22,7 +22,7 @@ void clear_error_handler();
 bool has_error_handler();
 
 error from_json_exception(const nlohmann::json::exception& ex);
-error from_cpp_exception(const std::exception& ex, int code);
+error from_cpp_exception(const std::exception& ex, int code, const char* function = nullptr);
 error unknown_error();
 
 } // namespace impl
