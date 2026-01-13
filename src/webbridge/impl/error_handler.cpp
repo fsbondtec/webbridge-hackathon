@@ -1,10 +1,43 @@
+
 #include "error_handler.h"
 #include "../error.h"
+#include <typeinfo>
+
+#include <string>
+#if defined(__GNUG__)
+#include <cxxabi.h>
+#include <cstdlib>
+#endif
+
+
 
 namespace webbridge::impl {
 
+
 // Globaler Error-Handler
 static error_handler g_error_handler;
+
+
+static std::string get_exception_typename(const std::exception& e) {
+#if defined(__GNUG__)
+	int status = 0;
+	char* demangled = abi::__cxa_demangle(typeid(e).name(), nullptr, nullptr, &status);
+	std::string name = (status == 0 && demangled) ? demangled : typeid(e).name();
+	std::free(demangled);
+	return name;
+#elif defined(_MSC_VER)
+	std::string name = typeid(e).name();
+	const std::string class_prefix = "class ";
+	const std::string struct_prefix = "struct ";
+	if (name.find(class_prefix) == 0)
+		name = name.substr(class_prefix.length());
+	else if (name.find(struct_prefix) == 0)
+		name = name.substr(struct_prefix.length());
+	return name;
+#else
+	return typeid(e).name();
+#endif
+}
 
 void set_error_handler(error_handler handler) {
 	g_error_handler = std::move(handler);
@@ -36,20 +69,23 @@ error from_json_exception(const nlohmann::json::exception& ex) {
 }
 
 error from_cpp_exception(const std::exception& ex, int code, const char* function) {
+	std::string cpp_name = get_exception_typename(ex);
 	if (g_error_handler) {
 		error err(code, ex.what());
 		err.with_origin(error_origin::CPP);
 		if (function)
 			err.with_cpp_function(function);
+		// Optional: Exception-Typname als Zusatzinfo
+		err.with_cpp_name(cpp_name);
 		g_error_handler(err, ex);
 		return err;
-	}
-	else {
+	} else {
 		error err(code, ex.what());
 		err.with_origin(error_origin::CPP);
 		if (function)
 			err.with_cpp_function(function);
-		return err;	
+		err.with_cpp_name(cpp_name);
+		return err;
 	}
 }
 

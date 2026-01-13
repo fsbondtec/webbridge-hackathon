@@ -61,7 +61,8 @@ struct error {
     std::string message;                      // Human-readable description
     error_origin origin;                      // Origin of the error
     std::optional<std::string> stack;         // Callstack (if available)
-    std::optional<std::string> cpp_function;  // Name of the C++ function (optional)
+    std::optional<std::string> cpp_function;  // Name of the C++ function
+    std::optional<std::string> cpp_name;      // Name of the C++ Exception
 
     error(int code, std::string message, error_origin origin = error_origin::UNKNOWN)
         : code(code), message(std::move(message)), origin(origin) {}
@@ -81,6 +82,11 @@ struct error {
         return *this;
     }
 
+    error& with_cpp_name(std::string name) {
+        cpp_name = std::move(name);
+        return *this;
+    }
+
     nlohmann::json to_json() const {
         nlohmann::json j;
         j["code"] = code;
@@ -89,6 +95,7 @@ struct error {
         j["origin"] = to_string(origin);
         j["cpp_function"] = cpp_function ? 
 			nlohmann::json(*cpp_function) : nlohmann::json(nullptr);
+        j["cpp_name"] = cpp_name ? nlohmann::json(*cpp_name) : nlohmann::json(nullptr);
         return j;
     }
     
